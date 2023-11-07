@@ -1,7 +1,6 @@
 import * as express from 'express';
 
 import healthRouter from './routes/health/healthRouter';
-import { decorateRouter } from '@awaitjs/express';
 import { BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError } from './infrastructure/errors';
 
 function errorHandler (err: Error, _: express.Request, res: express.Response, next: express.NextFunction) {
@@ -26,7 +25,7 @@ function errorHandler (err: Error, _: express.Request, res: express.Response, ne
     res.send(err);
   }
 
-const router = decorateRouter(express.Router({ mergeParams: true }));
+const router = express.Router({ mergeParams: true });
 
 router.use('/api/v1/health', healthRouter);
 
