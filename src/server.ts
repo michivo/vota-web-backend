@@ -50,6 +50,7 @@ export const generateExpress = (
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             _next: express.NextFunction
         ) => {
+            logger.error('Exception occurred while processing request.');
             logger.error(error);
             switch (error.constructor) {
                 case BadRequestError:

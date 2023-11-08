@@ -18,8 +18,6 @@ class UserService {
         const passwordHash = await hash(password, user.passwordSalt);
 
         if(passwordHash !== user.passwordHash) {
-            console.log(passwordHash);
-            console.log(JSON.stringify(user));
             throw new NotFoundError();
         }
     }
