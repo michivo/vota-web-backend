@@ -1,5 +1,8 @@
 {
     "server": {
         "port": 31401
+    },
+    "database": {
+        "path": "database/dev.db"
     }
 }

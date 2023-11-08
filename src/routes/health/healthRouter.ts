@@ -7,7 +7,7 @@ import { authorizationHandler, roleBasedAuthorization } from '../../infrastructu
 const router = express.Router();
 const healthService = new HealthService();
 
-const validation: ValidationChain = param('name').isAlpha().notEmpty();
+const validation: ValidationChain = param('name').isAlpha().notEmpty().isLength({ min: 1, max: 100 });
 const validationMiddleware = (req: express.Request, res: express.Response, next: (error?: any) => void) => Promise.resolve(validation(req, res, next));
 
 router.get('/hello/:name', validationMiddleware,
@@ -18,6 +18,16 @@ router.get('/hello/:name', validationMiddleware,
         }
 
         res.send(healthService.sayHello(req.params.name));
+});
+
+router.get('/helloDb/:name', validationMiddleware,
+    async (req: express.Request, res: express.Response) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new BadRequestError(JSON.stringify(errors));
+        }
+
+        res.send(await healthService.sayHelloWithDbCheck(req.params.name));
 });
 
 router.get('/helloUser/:name', authorizationHandler, validationMiddleware,
