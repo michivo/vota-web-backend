@@ -11,6 +11,7 @@ import {
     UnauthorizedError,
 } from './infrastructure/errors';
 import { ServerOptions } from './infrastructure/serverOptions';
+import { migrateDb } from './infrastructure/database';
 
 // Method for generating a express server
 // Not in Server class because of testing reasons
@@ -89,6 +90,10 @@ class Server {
     }
 
     public async start() {
+        this._logger.info('Migrating database');
+        await migrateDb();
+        this._logger.info('Migration complete');
+
         if (this._running) {
             this._logger.info('Server already started');
             return;

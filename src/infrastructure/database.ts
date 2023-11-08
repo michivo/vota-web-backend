@@ -11,3 +11,8 @@ export async function openDb() {
         driver: sqlite3.Database
     })
 }
+
+export async function migrateDb() {
+    const db = await openDb();
+    await db.migrate();
+}

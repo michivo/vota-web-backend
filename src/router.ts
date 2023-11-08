@@ -2,6 +2,7 @@ import * as express from 'express';
 
 import healthRouter from './routes/health/healthRouter';
 import { BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError } from './infrastructure/errors';
+import userRouter from './routes/users/userRouter';
 
 function errorHandler (err: Error, _: express.Request, res: express.Response, next: express.NextFunction) {
     console.log('Error processing request');
@@ -28,6 +29,7 @@ function errorHandler (err: Error, _: express.Request, res: express.Response, ne
 const router = express.Router({ mergeParams: true });
 
 router.use('/api/v1/health', healthRouter);
+router.use('/api/v1/user', userRouter);
 
 router.use(errorHandler);
 
