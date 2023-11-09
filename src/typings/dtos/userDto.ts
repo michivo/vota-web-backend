@@ -1,6 +1,8 @@
+import { UserRole } from "../userRole";
+
 export interface UserDto {
     id: number,
-    roleId: number,
+    role: UserRole,
     username: string,
     email: string | undefined | null,
     fullName: string,
