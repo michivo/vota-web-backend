@@ -4,6 +4,7 @@ import { BadRequestError } from '../../infrastructure/errors';
 import HealthService from './healthService';
 import { authorizationHandler, roleBasedAuthorization } from '../../infrastructure/authentication';
 import { wrapChain } from '../../helpers/wrapChain';
+import { UserRole } from '../../typings/userRole';
 
 const router = express.Router();
 const healthService = new HealthService();
@@ -30,24 +31,23 @@ router.get('/helloDb/:name', wrapChain(validation),
         res.send(await healthService.sayHelloWithDbCheck(req.params.name));
 });
 
-router.get('/helloUser/:name', authorizationHandler, wrapChain(validation),
+router.get('/helloUser/:name', authorizationHandler,
     async (req: express.Request, res: express.Response) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             throw new BadRequestError(JSON.stringify(errors));
         }
-
-        res.send(healthService.sayHello(req.params.name));
+        res.send(healthService.sayHello(req.user!.name));
 });
 
-router.get('/helloAdmin/:name', roleBasedAuthorization('admin'), wrapChain(validation),
+router.get('/helloAdmin/:name', roleBasedAuthorization(UserRole.Admin),
     async (req: express.Request, res: express.Response) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             throw new BadRequestError(JSON.stringify(errors));
         }
 
-        res.send(healthService.sayHello(req.params.name));
+        res.send(healthService.sayHello(req.user!.name));
 });
 
 export default router;
