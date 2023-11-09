@@ -2,6 +2,10 @@ import jwt from 'jsonwebtoken';
 import express, { RequestHandler } from 'express';
 import axios from 'axios';
 import { ForbiddenError, UnauthorizedError } from './errors';
+import { UserDao } from '../typings/daos/userDao';
+import fs from 'fs';
+import config from 'config';
+import { AuthOptions } from './authOptions';
 
 type Key = {
     kid: string;
@@ -14,17 +18,18 @@ export type TokenPayload = {
 
 class AuthenticationService {
 
-    private _configKeys: Key[];
+    private _privateKey: Buffer;
+    private _publicKey: Buffer;
+    private _authSettings: AuthOptions;
 
     public constructor() {
-        this._configKeys = [];
+        this._authSettings = config.get('auth') as AuthOptions;
+        this._privateKey = fs.readFileSync(this._authSettings.privateKeyFile);
+        this._publicKey = fs.readFileSync(this._authSettings.publicKeyFile);
     }
 
     public async authorize(authHeader: string, role: string | undefined = undefined) {
         if (authHeader) {
-            if (this._configKeys.length === 0) {
-                await this.fetchKeys();
-            }
 
             // get the token from the authorization header (format: Bearer token)
             const token = authHeader.split(' ')[1];
@@ -33,17 +38,11 @@ class AuthenticationService {
                 const decodedToken = jwt.decode(token, { complete: true });
 
                 const keyId = decodedToken?.header.kid;
-                let key = this._configKeys.find((key) => key.kid === keyId);
-                if (key === undefined) {
-                    await this.fetchKeys(); // maybe the keys have changed, reload them
-                    key = this._configKeys.find((key) => key.kid === keyId);
-                    if (key === undefined) {
-                        console.log(`Key with id ${keyId} not found.`);
-                        throw new ForbiddenError();
-                    }
+                if(keyId !== this._authSettings.keyId) {
+                    throw new ForbiddenError(`Invalid key id ${keyId}`);
                 }
 
-                const verifiedToken = jwt.verify(token, key.key, {
+                const verifiedToken = jwt.verify(token, this._publicKey!, {
                     algorithms: ['RS256'],
                 }) as TokenPayload;
                 if (role && verifiedToken) {
@@ -60,19 +59,13 @@ class AuthenticationService {
         throw new UnauthorizedError();
     };
 
-    private async fetchKeys() {
-        const url = `https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com`;
-
-        try {
-            const { data } = await axios.get(url);
-            for (const key in data) {
-                this._configKeys.push({ kid: key, key: data[key] });
-            }
-            console.log(`Successfully fetched ${this._configKeys.length} keys from Google.`);
-        } catch (error) {
-            console.log('Error getting signing keys from Google:');
-            throw (error);
-        }
+    public createJwt(user: UserDao): string {
+        var token = jwt.sign({ 
+            sub: user.username, 
+            role: user.roleId, 
+            name: user.fullName ?? user.username }, this._privateKey, 
+            { algorithm: 'RS256', expiresIn: "24h", keyid: this._authSettings.keyId } );
+        return token;
     }
 }
 
@@ -110,3 +103,7 @@ export const roleBasedAuthorization = (role: string) => {
         next();
     }
 };
+
+export const createJwt = (user: UserDao): string => {
+    return authService.createJwt(user);
+}

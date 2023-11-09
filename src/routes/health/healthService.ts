@@ -1,5 +1,5 @@
 import { openDb } from '../../infrastructure/database';
-import { Greeting } from '../../typings/greeting';
+import { Greeting } from '../../typings/dtos/greeting';
 
 class HealthService {
     sayHello = (name: string): Greeting => {

@@ -4,5 +4,10 @@
     },
     "database": {
         "path": "database/dev.db"
+    },
+    "auth": {
+        "privateKeyFile": "keys/jwtRS256.key",
+        "publicKeyFile": "keys/jwtRS256.key.pub",
+        "keyId": "da39a3ee5e6b4b0d3255bfef95601890afd80709"
     }
 }
