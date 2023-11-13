@@ -1,5 +1,5 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import express, { RequestHandler } from 'express';
+import express, { RequestHandler, raw } from 'express';
 import { ForbiddenError, UnauthorizedError } from './errors';
 import { UserDao } from '../typings/daos/userDao';
 import fs from 'fs';
@@ -38,6 +38,7 @@ class AuthenticationService {
                 }) as JwtPayload;
                 const verifiedToken = rawToken as AuthorizedUserInfo;
                 verifiedToken.name = rawToken.sub!;
+                verifiedToken.id = rawToken.uid;
                 if (verifiedToken) {
                     if (role === UserRole.None) {
                         return verifiedToken;
@@ -59,7 +60,8 @@ class AuthenticationService {
         var token = jwt.sign({
             sub: user.username,
             role: user.roleId,
-            name: user.fullName ?? user.username
+            name: user.fullName ?? user.username,
+            uid: user.id,
         }, this._privateKey,
             { algorithm: 'RS256', expiresIn: "24h", keyid: this._authSettings.keyId });
         return token;

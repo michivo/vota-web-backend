@@ -37,7 +37,8 @@ router.get('/helloUser/:name', authorizationHandler,
         if (!errors.isEmpty()) {
             throw new BadRequestError(JSON.stringify(errors));
         }
-        res.send(healthService.sayHello(req.user!.name));
+        console.error(req.user);
+        res.send(healthService.sayHello(req.user!.name + req.user?.id.toString()));
 });
 
 router.get('/helloAdmin/:name', roleBasedAuthorization(UserRole.Admin),

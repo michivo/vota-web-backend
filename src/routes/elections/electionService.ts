@@ -10,7 +10,7 @@ export class ElectionService {
     getElectionsForUser = async (userId: number): Promise<ElectionDto[]> => {
         const db = await openDb();
         try {
-            const results = await db.all('SELECT * FROM Election WHERE createUser = (?)', userId);
+            const results = await db.all('SELECT * FROM Election WHERE createUserId = (?)', userId);
             const elections = results.map(e => e as ElectionDao);
             return elections.map(this.mapToElectionDto);
         }
@@ -65,16 +65,18 @@ export class ElectionService {
     createElection = async (election: ElectionDto, userId: number): Promise<number | undefined> => {
         const db = await openDb();
         try { // TODO user id check needed?
+            console.debug('inserting election');
             const result = await db.run('INSERT INTO Election (title, description, createUserId, dateCreated, enforceGenderParity, electionType, electionState) VALUES ' +
                 '($title, $description, $createUserId, $dateCreated, $enforceGenderParity, $electionType, $electionState)', {
                 $title: election.title,
                 $description: election.description,
                 $createUserId: userId,
                 $dateCreated: new Date(),
-                $enforceGenderParty: election.enforceGenderParity,
+                $enforceGenderParity: election.enforceGenderParity,
                 $electionType: election.electionType,
                 $electionState: ElectionState.Creating,
             });
+            console.debug(`inserted election with id ${result.lastID}`);
             return result.lastID;
         }
         finally {

@@ -37,7 +37,7 @@ router.post('/singInRequests',
             const requestBody = req.body as SignInRequest;
             const user = await userService.checkCredentials(requestBody);
             const jwt = await createJwt(user);
-            res.send(jwt);
+            res.send({ token: jwt });
         }
         catch(err) {
             error(err);
