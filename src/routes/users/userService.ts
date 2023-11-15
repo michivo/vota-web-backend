@@ -3,12 +3,9 @@ import { openDb } from '../../infrastructure/database';
 import { BadRequestError, NotFoundError } from '../../infrastructure/errors';
 import { UserDao } from '../../typings/daos/userDao';
 import { SignInRequest } from '../../typings/dtos/signInRequest';
-import { UserDto } from '../../typings/dtos/userDto';
-import { Database } from 'sqlite3';
+import { UserDto, UserWithPasswordDto } from '../../typings/dtos/userDto';
 
 class UserService {
-    private _db: Database | undefined;
-
     checkCredentials = async (signInRequest: SignInRequest): Promise<UserDao> => {
         const db = await openDb();
         try {
@@ -32,27 +29,27 @@ class UserService {
         }
     }
 
-    createUser = async (user: UserDto): Promise<number | undefined> => {
+    createUser = async (user: UserWithPasswordDto): Promise<number | undefined> => {
         const db = await openDb();
         try {
-            const results = await db.all('SELECT id FROM User WHERE username = (?) LIMIT 1', user.username);
+            const existingUser = await db.get('SELECT id FROM User WHERE username = (?)', user.username);
 
-            if (results.length !== 0) {
+            if (existingUser) {
                 throw new BadRequestError('Ein*e Benutzer*in mit diesem Namen existiert bereits.');
             }
 
             const salt = await genSalt(10);
             const passwordHash = await hash(user.password, salt);
 
-            const result = await db.run('INSERT INTO User (roleId, username, email, fullName, passwordHash, passwordSalt) VALUES ' + 
+            const result = await db.run('INSERT INTO User (roleId, username, email, fullName, passwordHash, passwordSalt) VALUES ' +
                 '($roleId, $username, $email, $fullName, $passwordHash, $passwordSalt)', {
-                    $roleId: user.role,
-                    $username: user.username,
-                    $email: user.email,
-                    $fullName: user.fullName,
-                    $passwordHash: passwordHash,
-                    $passwordSalt: salt
-                });
+                $roleId: user.role,
+                $username: user.username,
+                $email: user.email,
+                $fullName: user.fullName,
+                $passwordHash: passwordHash,
+                $passwordSalt: salt
+            });
 
             console.error(JSON.stringify(result));
             return result.lastID;
@@ -60,6 +57,91 @@ class UserService {
         finally {
             db.close();
         }
+    }
+
+    public async getUsers(): Promise<UserDto[]> {
+        const db = await openDb();
+        try {
+            const results = await db.all('SELECT id, roleId, username, email, fullName FROM User WHERE isActive = 1');
+            const userDaos = results.map(r => r as UserDao);
+            return userDaos.map(dao => this.mapToUserDto(dao));
+        }
+        finally {
+            db.close();
+        }
+    }
+
+    public async updateUser(user: UserDto): Promise<void> {
+        const db = await openDb();
+        try {
+            const existingUser = await db.get('SELECT id FROM User WHERE id = (?) AND isActive = 1', user.id);
+
+            if (!existingUser) {
+                throw new BadRequestError('Diese*r Benutzer*in existiert nicht.');
+            }
+            await db.run('UPDATE User SET roleId = $roleId, ' +
+                'username = $username, email = $email, ' +
+                'fullName = $fullName WHERE ' +
+                'User.id = $userId', {
+                $roleId: user.role,
+                $username: user.username,
+                $email: user.email,
+                $fullName: user.fullName,
+                $userId: user.id,
+            });
+        }
+        finally {
+            db.close();
+        }        
+    }
+
+    public async updatePassword(userId: number, password: string): Promise<void> {
+        const db = await openDb();
+        try {
+            const existingUser = await db.get('SELECT id FROM User WHERE id = (?) AND isActive = 1', userId);
+
+            if (!existingUser) {
+                throw new BadRequestError('Diese*r Benutzer*in existiert nicht.');
+            }
+            const salt = await genSalt(10);
+            const passwordHash = await hash(password, salt);
+            await db.run('UPDATE User SET passwordHash = $passwordHash, ' +
+                'passwordSalt = $passwordSalt WHERE ' +
+                'User.id = $userId', {
+                    $passwordHash: passwordHash,
+                    $passwordSalt: salt,
+                    $userId: userId,
+            });
+        }
+        finally {
+            db.close();
+        }        
+    }    
+
+    public async deleteUser(id: number): Promise<void> {
+        const db = await openDb();
+        try {
+            const existingUser = await db.get('SELECT id FROM User WHERE id = (?)', id);
+
+            if (!existingUser) {
+                throw new BadRequestError('Diese*r Benutzer*in existiert nicht.');
+            }
+
+            await db.run('UPDATE User SET isActive = false WHERE id = (?)', id);
+        }
+        finally {
+            db.close();
+        }        
+    }
+
+    private mapToUserDto(dao: UserDao): UserDto {
+        return {
+            role: dao.roleId,
+            email: dao.email,
+            fullName: dao.fullName,
+            id: dao.id,
+            username: dao.username
+        };
     }
 
     // id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,3 +155,4 @@ class UserService {
 }
 
 export default UserService;
+

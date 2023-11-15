@@ -43,7 +43,7 @@ router.put('/:electionId', roleBasedAuthorization(UserRole.Admin),
         }
 
         await electionService.updateElection(election);
-        res.send('OK');
+        res.send({ success: true });
     }
     catch (err) {
         error(err);

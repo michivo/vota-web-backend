@@ -6,5 +6,8 @@ export interface UserDto {
     username: string,
     email: string | undefined | null,
     fullName: string,
-    password: string,
 };
+
+export interface UserWithPasswordDto extends UserDto {
+    password: string,
+}

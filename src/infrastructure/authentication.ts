@@ -33,7 +33,7 @@ class AuthenticationService {
                 if (keyId !== this._authSettings.keyId) {
                     throw new ForbiddenError(`Invalid key id ${keyId}`);
                 }
-                var rawToken = jwt.verify(token, this._publicKey!, {
+                const rawToken = jwt.verify(token, this._publicKey!, {
                     algorithms: ['RS256'],
                 }) as JwtPayload;
                 const verifiedToken = rawToken as AuthorizedUserInfo;
