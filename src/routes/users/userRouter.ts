@@ -13,7 +13,7 @@ const userService = new UserService();
 const validation: ValidationChain[] = [
     body('username').notEmpty().isLength({ min: 3, max: 50 }),
     body('password').isStrongPassword({ minLength: 8 }),
-    body('email').optional().isEmail(),
+    body('email').isEmail().optional({values: 'falsy'}),
 ]
 
 router.post('/', roleBasedAuthorization(UserRole.Admin), validation,
@@ -60,7 +60,7 @@ router.get('/', roleBasedAuthorization(UserRole.Admin),
 router.put('/:userId', roleBasedAuthorization(UserRole.Admin), 
     body('username').notEmpty().isLength({ min: 3, max: 50 }), 
     param('userId').isNumeric(),
-    body('email').optional().isEmail(),
+    body('email').isEmail().optional({ values: 'falsy' }),
     async (req: express.Request, res: express.Response, error: NextFunction) => {
         try {
             const errors = validationResult(req);

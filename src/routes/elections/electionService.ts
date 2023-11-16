@@ -65,8 +65,9 @@ export class ElectionService {
     createElection = async (election: ElectionDto, userId: number): Promise<number | undefined> => {
         const db = await openDb();
         try { // TODO user id check needed?
-            console.debug('inserting election');
-            const result = await db.run('INSERT INTO Election (title, description, createUserId, dateCreated, enforceGenderParity, electionType, electionState) VALUES ' +
+            console.debug('inserting election' + JSON.stringify(election));
+            const result = await db.run('INSERT INTO Election ' + 
+                '( title,  description,  createUserId,  dateCreated,  enforceGenderParity,  electionType,  electionState) VALUES ' +
                 '($title, $description, $createUserId, $dateCreated, $enforceGenderParity, $electionType, $electionState)', {
                 $title: election.title,
                 $description: election.description,

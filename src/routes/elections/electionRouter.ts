@@ -3,7 +3,7 @@ import { BadRequestError, UnauthorizedError } from '../../infrastructure/errors'
 import { ElectionService } from './electionService';
 import { ElectionDto, ElectionWithCandidatesDto } from '../../typings/dtos/electionDto';
 import { UserRole } from '../../typings/userRole';
-import { roleBasedAuthorization } from '../../infrastructure/authentication';
+import { authorizationHandler, roleBasedAuthorization } from '../../infrastructure/authentication';
 
 const router = express.Router();
 const electionService = new ElectionService();
@@ -23,7 +23,7 @@ router.post('/', roleBasedAuthorization(UserRole.Admin),
     }
 });
 
-router.get('/', roleBasedAuthorization(UserRole.Admin), 
+router.get('/', authorizationHandler, 
     async (req: express.Request, res: express.Response, error: NextFunction) => {
     try {
         const allElections = await electionService.getElectionsForUser(req.user?.id ?? 0);
