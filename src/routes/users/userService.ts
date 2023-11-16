@@ -127,7 +127,7 @@ class UserService {
                 throw new BadRequestError('Diese*r Benutzer*in existiert nicht.');
             }
 
-            await db.run('UPDATE User SET isActive = false WHERE id = (?)', id);
+            await db.run('UPDATE User SET isActive = false, username = \'___deleted___\' || username WHERE id = (?)', id);
         }
         finally {
             db.close();

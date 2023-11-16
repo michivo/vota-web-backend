@@ -57,7 +57,10 @@ router.get('/', roleBasedAuthorization(UserRole.Admin),
         }
     });
 
-router.put('/:userId', roleBasedAuthorization(UserRole.Admin), validation, param('userId').isNumeric(),
+router.put('/:userId', roleBasedAuthorization(UserRole.Admin), 
+    body('username').notEmpty().isLength({ min: 3, max: 50 }), 
+    param('userId').isNumeric(),
+    body('email').optional().isEmail(),
     async (req: express.Request, res: express.Response, error: NextFunction) => {
         try {
             const errors = validationResult(req);
@@ -65,8 +68,8 @@ router.put('/:userId', roleBasedAuthorization(UserRole.Admin), validation, param
                 throw new BadRequestError(JSON.stringify(errors));
             }
             const user = req.body as UserDto;
-            if(user.id !== parseInt(req.params.id)) {
-                throw new BadRequestError('Ungültige Benutzer*innen-ID');
+            if(user.id !== parseInt(req.params.userId)) {
+                throw new BadRequestError(`Ungültige Benutzer*innen-ID: ${user.id} vs ${req.params.userId}`);
             }
             await userService.updateUser(user);
             res.send({ success: true });
