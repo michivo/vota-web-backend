@@ -4,6 +4,7 @@ import { ElectionService } from './electionService';
 import { ElectionDto, ElectionWithCandidatesDto } from '../../typings/dtos/electionDto';
 import { UserRole } from '../../typings/userRole';
 import { authorizationHandler, roleBasedAuthorization } from '../../infrastructure/authentication';
+import { param } from 'express-validator';
 
 const router = express.Router();
 const electionService = new ElectionService();
@@ -24,9 +25,21 @@ router.post('/', roleBasedAuthorization(UserRole.Admin),
 });
 
 router.get('/', authorizationHandler, 
+    async (_req: express.Request, res: express.Response, error: NextFunction) => {
+    try {
+        const allElections = await electionService.getAllElections();
+        res.send(allElections);
+    }
+    catch (err) {
+        error(err);
+    }
+});
+
+router.get('/:electionId', authorizationHandler,
+    param('electionId').isNumeric(),
     async (req: express.Request, res: express.Response, error: NextFunction) => {
     try {
-        const allElections = await electionService.getElectionsForUser(req.user?.id ?? 0);
+        const allElections = await electionService.getElection(parseInt(req.params.electionId));
         res.send(allElections);
     }
     catch (err) {
@@ -43,6 +56,18 @@ router.put('/:electionId', roleBasedAuthorization(UserRole.Admin),
         }
 
         await electionService.updateElection(election);
+        res.send({ success: true });
+    }
+    catch (err) {
+        error(err);
+    }
+});
+
+router.delete('/:electionId', roleBasedAuthorization(UserRole.Admin), 
+    param('electionId').isNumeric(),
+    async (req: express.Request, res: express.Response, error: NextFunction) => {
+    try {
+        await electionService.deleteElection(parseInt(req.params.electionId));
         res.send({ success: true });
     }
     catch (err) {
