@@ -8,7 +8,7 @@ export async function openDb() {
 
     return open({
         filename: dbOptions.path,
-        driver: sqlite3.Database
+        driver: sqlite3.Database,
     })
 }
 

@@ -20,7 +20,7 @@ export async function sendResetMail(challenge: string, toAddress: string) {
     const subject = 'Ihr Vota-Konto';
     const mailOptions: MailOptions = config.get('sendgrid');
     const link = `${mailOptions.frontendUrl}/reset-password?challenge=${challenge}`;
-    const content = 'Für Sie wurde ein neues Benutzer*innenkonto bei Vota, dem Wahltool der Grünen, angelegt. Bitte öffnen Sie folgenden Link, um ein Passwort für Ihr Konto festzulegen: ' + link;
+    const content = `Für Sie wurde ein neues Benutzer*innenkonto bei Vota, dem Wahltool der Grünen, angelegt. Bitte öffnen Sie folgenden Link, um ein Passwort für Ihr Konto festzulegen: ${  link}`;
     const contentHtml = '<html><head><title>Vota</title></head><body><p>Für Sie wurde ein neues Benutzer*innenkonto bei Vota, dem Wahltool der Grünen, angelegt. Bitte öffnen Sie folgenden Link, um ein Passwort für Ihr Konto festzulegen: <br>' + 
         `<a href="${link}">${link}</a></p></html>`;
     console.log(content);

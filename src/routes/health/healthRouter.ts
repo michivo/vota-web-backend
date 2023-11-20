@@ -3,7 +3,6 @@ import { ValidationChain, param, validationResult } from 'express-validator';
 import { BadRequestError } from '../../infrastructure/errors';
 import HealthService from './healthService';
 import { authorizationHandler, roleBasedAuthorization } from '../../infrastructure/authentication';
-import { wrapChain } from '../../helpers/wrapChain';
 import { UserRole } from '../../typings/userRole';
 
 const router = express.Router();
@@ -11,7 +10,7 @@ const healthService = new HealthService();
 
 const validation: ValidationChain = param('name').isAlpha().notEmpty().isLength({ min: 1, max: 100 });
 
-router.get('/hello/:name', wrapChain(validation),
+router.get('/hello/:name', validation,
     async (req: express.Request, res: express.Response) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -21,7 +20,7 @@ router.get('/hello/:name', wrapChain(validation),
         res.send(healthService.sayHello(req.params.name));
 });
 
-router.get('/helloDb/:name', wrapChain(validation),
+router.get('/helloDb/:name', validation,
     async (req: express.Request, res: express.Response) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {

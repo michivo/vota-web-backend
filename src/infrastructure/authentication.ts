@@ -1,5 +1,5 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import express, { RequestHandler, raw } from 'express';
+import express, { RequestHandler } from 'express';
 import { ForbiddenError, UnauthorizedError } from './errors';
 import { UserDao } from '../typings/daos/userDao';
 import fs from 'fs';
@@ -54,16 +54,16 @@ class AuthenticationService {
             }
         }
         throw new UnauthorizedError();
-    };
+    }
 
     public createJwt(user: UserDao): string {
-        var token = jwt.sign({
+        const token = jwt.sign({
             sub: user.username,
             role: user.roleId,
             name: user.fullName ?? user.username,
             uid: user.id,
         }, this._privateKey,
-            { algorithm: 'RS256', expiresIn: "24h", keyid: this._authSettings.keyId });
+            { algorithm: 'RS256', expiresIn: '24h', keyid: this._authSettings.keyId });
         return token;
     }
 }

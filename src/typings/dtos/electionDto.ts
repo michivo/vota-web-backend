@@ -1,6 +1,6 @@
-import { ElectionState } from "../electionState";
-import { ElectionType } from "../electionType";
-import { CandidateDto } from "./candidateDto";
+import { ElectionState } from '../electionState';
+import { ElectionType } from '../electionType';
+import { CandidateDto } from './candidateDto';
 
 export interface ElectionDto {
     id: number,

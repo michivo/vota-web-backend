@@ -1,11 +1,11 @@
-import { Database } from "sqlite";
-import { openDb } from "../../infrastructure/database";
-import { BadRequestError, NotFoundError } from "../../infrastructure/errors";
-import { CandidateDao } from "../../typings/daos/candidateDao";
-import { ElectionDao } from "../../typings/daos/electionDao";
-import { CandidateDto } from "../../typings/dtos/candidateDto";
-import { ElectionDto, ElectionWithCandidatesDto } from "../../typings/dtos/electionDto";
-import { ElectionState } from "../../typings/electionState";
+import { Database } from 'sqlite';
+import { openDb } from '../../infrastructure/database';
+import { BadRequestError, NotFoundError } from '../../infrastructure/errors';
+import { CandidateDao } from '../../typings/daos/candidateDao';
+import { ElectionDao } from '../../typings/daos/electionDao';
+import { CandidateDto } from '../../typings/dtos/candidateDto';
+import { ElectionDto, ElectionWithCandidatesDto } from '../../typings/dtos/electionDto';
+import { ElectionState } from '../../typings/electionState';
 
 export class ElectionService {
     getElectionsForUser = async (userId: number): Promise<ElectionDto[]> => {
@@ -66,7 +66,7 @@ export class ElectionService {
     createElection = async (election: ElectionDto, userId: number): Promise<number | undefined> => {
         const db = await openDb();
         try { // TODO user id check needed?
-            console.debug('inserting election' + JSON.stringify(election));
+            console.debug(`inserting election${  JSON.stringify(election)}`);
             const result = await db.run('INSERT INTO Election ' +
                 '( title,  description,  createUserId,  dateCreated,  enforceGenderParity,  electionType,  electionState) VALUES ' +
                 '($title, $description, $createUserId, $dateCreated, $enforceGenderParity, $electionType, $electionState)', {
@@ -219,7 +219,7 @@ export class ElectionService {
             name: c.name,
             description: c.description,
             gender: c.gender,
-            electionId: electionId
+            electionId: electionId,
         };
     }
 }

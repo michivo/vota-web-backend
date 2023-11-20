@@ -16,11 +16,11 @@ router.post('/', roleBasedAuthorization(UserRole.Admin),
         [
             body('sendPasswordLink').isBoolean().equals('false'),
             body('password').isStrongPassword({ minLength: 8 }),
-            body('email').isEmail().optional({ values: 'falsy' })
+            body('email').isEmail().optional({ values: 'falsy' }),
         ],
         [
             body('sendPasswordLink').isBoolean().equals('true'),
-            body('email').isEmail()
+            body('email').isEmail(),
         ],
     ], { message: 'Nope' }),
     async (req: express.Request, res: express.Response, error: NextFunction) => {

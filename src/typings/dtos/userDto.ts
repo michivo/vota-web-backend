@@ -1,4 +1,4 @@
-import { UserRole } from "../userRole";
+import { UserRole } from '../userRole';
 
 export interface UserDto {
     id: number,
@@ -6,7 +6,7 @@ export interface UserDto {
     username: string,
     email: string | undefined | null,
     fullName: string,
-};
+}
 
 export interface CreateUserRequest extends UserWithPasswordDto {
     sendPasswordLink: boolean,

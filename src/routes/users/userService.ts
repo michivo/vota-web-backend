@@ -47,7 +47,7 @@ class UserService {
             if(user.sendPasswordLink) {
                 password = crypto.randomUUID();
             }
-            const passwordHash = await hash(user.password, salt);
+            const passwordHash = await hash(password, salt);
 
             const result = await db.run('INSERT INTO User (roleId, username, email, fullName, passwordHash, passwordSalt) VALUES ' +
                 '($roleId, $username, $email, $fullName, $passwordHash, $passwordSalt)', {
@@ -56,7 +56,7 @@ class UserService {
                 $email: user.email,
                 $fullName: user.fullName,
                 $passwordHash: passwordHash,
-                $passwordSalt: salt
+                $passwordSalt: salt,
             });
 
             if(user.sendPasswordLink && user.email) {
@@ -183,7 +183,7 @@ class UserService {
             email: dao.email,
             fullName: dao.fullName,
             id: dao.id,
-            username: dao.username
+            username: dao.username,
         };
     }
 
