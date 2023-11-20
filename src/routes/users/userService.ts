@@ -1,11 +1,15 @@
+import crypto from 'crypto';
 import { genSalt, hash } from 'bcrypt';
 import { openDb } from '../../infrastructure/database';
 import { BadRequestError, NotFoundError } from '../../infrastructure/errors';
 import { UserDao } from '../../typings/daos/userDao';
 import { SignInRequest } from '../../typings/dtos/signInRequest';
-import { UserDto, UserWithPasswordDto } from '../../typings/dtos/userDto';
+import { CreateUserRequest, UserDto } from '../../typings/dtos/userDto';
+import { sendResetMail } from '../../infrastructure/mail';
+import { Database } from 'sqlite';
 
 class UserService {
+
     checkCredentials = async (signInRequest: SignInRequest): Promise<UserDao> => {
         const db = await openDb();
         try {
@@ -29,7 +33,7 @@ class UserService {
         }
     }
 
-    createUser = async (user: UserWithPasswordDto): Promise<number | undefined> => {
+    createUser = async (user: CreateUserRequest): Promise<number | undefined> => {
         const db = await openDb();
         try {
             const existingUser = await db.get('SELECT id FROM User WHERE username = (?)', user.username);
@@ -39,6 +43,10 @@ class UserService {
             }
 
             const salt = await genSalt(10);
+            let password = user.password?.trim() ?? '';
+            if(user.sendPasswordLink) {
+                password = crypto.randomUUID();
+            }
             const passwordHash = await hash(user.password, salt);
 
             const result = await db.run('INSERT INTO User (roleId, username, email, fullName, passwordHash, passwordSalt) VALUES ' +
@@ -51,7 +59,16 @@ class UserService {
                 $passwordSalt: salt
             });
 
-            console.error(JSON.stringify(result));
+            if(user.sendPasswordLink && user.email) {
+                const challenge = crypto.randomUUID();
+                await db.run('INSERT INTO PasswordReset (challenge, userId, dateCreated) VALUES ' + 
+                    '($challenge, $userId, $dateCreated)', {
+                        $challenge: challenge,
+                        $userId: result.lastID,
+                        $dateCreated: new Date(),
+                    });
+                await sendResetMail(challenge, user.email);
+            }
             return result.lastID;
         }
         finally {
@@ -98,25 +115,29 @@ class UserService {
     public async updatePassword(userId: number, password: string): Promise<void> {
         const db = await openDb();
         try {
-            const existingUser = await db.get('SELECT id FROM User WHERE id = (?) AND isActive = 1', userId);
-
-            if (!existingUser) {
-                throw new BadRequestError('Diese*r Benutzer*in existiert nicht.');
-            }
-            const salt = await genSalt(10);
-            const passwordHash = await hash(password, salt);
-            await db.run('UPDATE User SET passwordHash = $passwordHash, ' +
-                'passwordSalt = $passwordSalt WHERE ' +
-                'User.id = $userId', {
-                    $passwordHash: passwordHash,
-                    $passwordSalt: salt,
-                    $userId: userId,
-            });
+            await this.setPassword(db, userId, password);
         }
         finally {
             db.close();
         }        
     }    
+
+    private async setPassword(db: Database, userId: number, password: string) {
+        const existingUser = await db.get('SELECT id FROM User WHERE id = (?) AND isActive = 1', userId);
+
+        if (!existingUser) {
+            throw new BadRequestError('Diese*r Benutzer*in existiert nicht.');
+        }
+        const salt = await genSalt(10);
+        const passwordHash = await hash(password, salt);
+        await db.run('UPDATE User SET passwordHash = $passwordHash, ' +
+            'passwordSalt = $passwordSalt WHERE ' +
+            'User.id = $userId', {
+            $passwordHash: passwordHash,
+            $passwordSalt: salt,
+            $userId: userId,
+        });
+    }
 
     public async deleteUser(id: number): Promise<void> {
         const db = await openDb();
@@ -133,6 +154,28 @@ class UserService {
             db.close();
         }        
     }
+
+    public async setPasswordFromChallenge(challenge: string, password: string) {
+        const db = await openDb();
+        try {
+            const dbChallenge = await db.get('SELECT * FROM PasswordReset WHERE challenge = (?)', challenge);
+            const userId = dbChallenge.userId;
+            const dateCreated = new Date(dbChallenge.dateCreated);
+            const now = new Date();
+            if(now.valueOf() - dateCreated.valueOf() > 24 * 3600 * 1000) {
+                throw new BadRequestError('Dieser Link ist bereits abgelaufen');
+            }
+            const epoch = new Date(0);
+            await this.setPassword(db, userId, password);
+            await db.run('UPDATE PasswordReset SET dateCreated = $epoch WHERE id = $resetId', {
+                $epoch: epoch,
+                $resetId: dbChallenge.id,
+            });
+        }
+        finally {
+            db.close();
+        }
+    }    
 
     private mapToUserDto(dao: UserDao): UserDto {
         return {

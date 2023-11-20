@@ -130,3 +130,5 @@ dist
 .pnp.*
 database/dev.db
 keys/*
+config/*
+config/development.json

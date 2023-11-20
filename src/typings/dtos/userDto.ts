@@ -8,6 +8,10 @@ export interface UserDto {
     fullName: string,
 };
 
+export interface CreateUserRequest extends UserWithPasswordDto {
+    sendPasswordLink: boolean,
+}
+
 export interface UserWithPasswordDto extends UserDto {
     password: string,
 }
