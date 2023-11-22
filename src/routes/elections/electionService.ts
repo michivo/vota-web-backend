@@ -204,6 +204,8 @@ export class ElectionService {
             enforceGenderParity: election.enforceGenderParity,
             electionType: election.electionType,
             electionState: election.electionState,
+            alreadyElectedFemale: election.alreadyElectedFemale,
+            alreadyElectedMale: election.alreadyElectedMale,
         };
     }
 

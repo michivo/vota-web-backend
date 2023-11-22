@@ -11,6 +11,8 @@ export interface ElectionDao {
     enforceGenderParity: boolean,
     electionType: ElectionType,
     electionState: ElectionState,
+    alreadyElectedMale: number,
+    alreadyElectedFemale: number,    
 }
 
 export interface ElectionWithCandidatesDao extends ElectionDao {
