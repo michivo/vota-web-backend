@@ -1,7 +1,6 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import express, { RequestHandler } from 'express';
 import { ForbiddenError, UnauthorizedError } from './errors';
-import { UserDao } from '../typings/daos/userDao';
 import fs from 'fs';
 import config from 'config';
 import { AuthOptions } from './authOptions';
