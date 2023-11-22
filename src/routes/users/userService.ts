@@ -7,26 +7,34 @@ import { SignInRequest } from '../../typings/dtos/signInRequest';
 import { CreateUserRequest, UserDto } from '../../typings/dtos/userDto';
 import { sendResetMail } from '../../infrastructure/mail';
 import { Database } from 'sqlite';
+import { RegionDto } from '../../typings/dtos/regionDto';
 
 class UserService {
 
-    checkCredentials = async (signInRequest: SignInRequest): Promise<UserDao> => {
+    checkCredentials = async (signInRequest: SignInRequest): Promise<UserDto> => {
         const db = await openDb();
         try {
-            const results = await db.all('SELECT * FROM USER WHERE username = (?)', signInRequest.username);
+            const results = await db.all('SELECT User.id, User.username, User.roleId, User.email, User.isActive, User.fullName, ' + 
+            'User.passwordHash, User.passwordSalt, Region.id as regionId, Region.regionName ' + 
+            'FROM User LEFT JOIN UserRegion ON UserRegion.userId=User.id LEFT JOIN Region ON Region.id = UserRegion.regionId WHERE User.isActive=1 AND User.username = (?)', signInRequest.username);
 
             if (results.length === 0) {
                 throw new NotFoundError();
             }
 
             const user = results[0] as UserDao;
+            const region = {
+                id: results[0].regionId,
+                regionName: results[0].regionName,
+            };
+            const userDto = this.mapToUserDto(user, region);
 
             const passwordHash = await hash(signInRequest.password, user.passwordSalt);
 
             if (passwordHash !== user.passwordHash) {
                 throw new NotFoundError();
             }
-            return user;
+            return userDto;
         }
         finally {
             db.close();
@@ -58,6 +66,13 @@ class UserService {
                 $passwordHash: passwordHash,
                 $passwordSalt: salt,
             });
+            for(const region of user.regions) {
+                await db.run('INSERT INTO UserRegion (regionId, userId) VALUES ($regionId, $userId)', 
+                {
+                    $regionId: region.id,
+                    $userId: result.lastID,
+                });
+            }
 
             if(user.sendPasswordLink && user.email) {
                 const challenge = crypto.randomUUID();
@@ -79,9 +94,23 @@ class UserService {
     public async getUsers(): Promise<UserDto[]> {
         const db = await openDb();
         try {
-            const results = await db.all('SELECT id, roleId, username, email, fullName FROM User WHERE isActive = 1');
-            const userDaos = results.map(r => r as UserDao);
-            return userDaos.map(dao => this.mapToUserDto(dao));
+            const queryResults = await db.all('SELECT User.id, User.username, User.roleId, User.email, User.isActive, User.fullName, Region.id as regionId, Region.regionName ' + 
+                'FROM User INNER JOIN UserRegion ON UserRegion.userId=User.id INNER JOIN Region ON Region.id = UserRegion.regionId WHERE User.isActive=1');
+            const result: UserDto[] = [];
+            for(const user of queryResults) {
+                const existingUser = result.find(u => u.id === user.id);
+                const region = {
+                    id: user.regionId,
+                    regionName: user.regionName,
+                };
+                if(existingUser) {
+                    existingUser.regions.push(region);
+                }
+                else {
+                    result.push(this.mapToUserDto(user, region));
+                }
+            }
+            return result;
         }
         finally {
             db.close();
@@ -177,13 +206,14 @@ class UserService {
         }
     }    
 
-    private mapToUserDto(dao: UserDao): UserDto {
+    private mapToUserDto(dao: UserDao, region: RegionDto): UserDto {
         return {
             role: dao.roleId,
             email: dao.email,
             fullName: dao.fullName,
             id: dao.id,
             username: dao.username,
+            regions: [ region ],
         };
     }
 

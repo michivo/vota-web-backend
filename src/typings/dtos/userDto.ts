@@ -1,4 +1,5 @@
 import { UserRole } from '../userRole';
+import { RegionDto } from './regionDto';
 
 export interface UserDto {
     id: number,
@@ -6,6 +7,7 @@ export interface UserDto {
     username: string,
     email: string | undefined | null,
     fullName: string,
+    regions: RegionDto[],
 }
 
 export interface CreateUserRequest extends UserWithPasswordDto {

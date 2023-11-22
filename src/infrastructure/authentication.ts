@@ -7,6 +7,7 @@ import config from 'config';
 import { AuthOptions } from './authOptions';
 import { UserRole } from '../typings/userRole';
 import { AuthorizedUserInfo } from '../typings/userRequest';
+import { UserDto } from '../typings/dtos/userDto';
 
 class AuthenticationService {
 
@@ -56,12 +57,13 @@ class AuthenticationService {
         throw new UnauthorizedError();
     }
 
-    public createJwt(user: UserDao): string {
+    public createJwt(user: UserDto): string {
         const token = jwt.sign({
             sub: user.username,
-            role: user.roleId,
+            role: user.role,
             name: user.fullName ?? user.username,
             uid: user.id,
+            regionIds: user.regions.map(r => r.id),
         }, this._privateKey,
             { algorithm: 'RS256', expiresIn: '24h', keyid: this._authSettings.keyId });
         return token;
@@ -105,6 +107,6 @@ export const roleBasedAuthorization = (role: UserRole) => {
     }
 };
 
-export const createJwt = (user: UserDao): string => {
+export const createJwt = (user: UserDto): string => {
     return authService.createJwt(user);
 }

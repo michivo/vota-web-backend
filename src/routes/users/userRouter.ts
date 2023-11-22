@@ -22,7 +22,7 @@ router.post('/', roleBasedAuthorization(UserRole.Admin),
             body('sendPasswordLink').isBoolean().equals('true'),
             body('email').isEmail(),
         ],
-    ], { message: 'Nope' }),
+    ], { message: 'Passworteinstellungen sing ungültig' }),
     async (req: express.Request, res: express.Response, error: NextFunction) => {
         try {
             const errors = validationResult(req);
