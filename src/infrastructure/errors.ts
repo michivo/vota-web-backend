@@ -25,3 +25,10 @@ export class NotFoundError extends Error {
         super(message);
     }
 }
+
+// status code 500
+export class InternalError extends Error {
+    public constructor(message = 'Internal Error') {
+        super(message);
+    }
+}

@@ -1,0 +1,21 @@
+export interface BallotDao {
+    id: number,
+    countingUserId: number,
+    additionalPeople: string | undefined | null,
+    dateCreatedUtc: Date,
+    electionId: number,
+    ballotStation: string | undefined | null,
+    ballotIdentifier: string | undefined | null,
+    isValid: boolean,
+    notes: string | undefined | null,
+}
+
+// id               INTEGER PRIMARY KEY AUTOINCREMENT,
+// countingUserId   INTEGER NOT NULL,
+// additionalPeople TEXT NULL,
+// dateCreated      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+// electionId       INTEGER NOT NULL,
+// ballotStation    TEXT NULL,
+// ballotIdentifier TEXT NULL,
+// isValid          INTEGER NOT NULL,
+// notes            TEXT NULL,

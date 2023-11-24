@@ -7,6 +7,7 @@ import Logger from './infrastructure/logger';
 import {
     BadRequestError,
     ForbiddenError,
+    InternalError,
     NotFoundError,
     UnauthorizedError,
 } from './infrastructure/errors';
@@ -61,6 +62,8 @@ export const generateExpress = (
                     return res.status(403).send(error.message);
                 case NotFoundError:
                     return res.status(404).send(error.message);
+                case InternalError:
+                    return res.status(500).send(error.message);
                 default:
                     throw error;
             }
