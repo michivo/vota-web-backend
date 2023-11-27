@@ -46,7 +46,7 @@ export class ElectionService {
 
     getElection = async (electionId: number): Promise<ElectionWithCandidatesDto> => {
         const db = await openDb();
-        try {
+        try { // TODO make a join?
             const result = await db.get('SELECT * FROM Election WHERE id = (?)', electionId);
             if (!result) {
                 throw new NotFoundError(`Wahl mit Id ${electionId} konnte nicht gefunden werden.`);

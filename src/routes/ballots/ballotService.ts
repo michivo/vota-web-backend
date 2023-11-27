@@ -1,7 +1,9 @@
+import { Database } from 'sqlite';
 import { openDb } from '../../infrastructure/database';
-import { InternalError } from '../../infrastructure/errors';
+import { BadRequestError, InternalError } from '../../infrastructure/errors';
 import { BallotDao } from '../../typings/daos/ballotDao';
 import { BallotInfoDto, BallotWithVotesDto } from '../../typings/dtos/ballotDto';
+import { ElectionState } from '../../typings/electionState';
 
 export class BallotService {
     async getBallots(electionId: number): Promise<BallotInfoDto[]> {
@@ -20,8 +22,8 @@ export class BallotService {
 
     async addBallot(ballot: BallotWithVotesDto, userId: number): Promise<number | undefined> {
         const db = await openDb();
-        try { // TODO election state check
-            console.debug(`inserting ballot ${JSON.stringify(ballot)}`);
+        try { // TODO election state check, ballot number uniqueness check
+            await checkIsBallotValid(ballot, db);
             const result = await db.run('INSERT INTO Ballot ' +
                 '(additionalPeople,   ballotIdentifier,  ballotStation,  countingUserId,  electionId,  isValid,  notes) VALUES ' +
                 '($additionalPeople, $ballotIdentifier, $ballotStation, $countingUserId, $electionId, $isValid, $notes)', {
@@ -71,3 +73,20 @@ export class BallotService {
     }
 
 }
+
+async function checkIsBallotValid(ballot: BallotWithVotesDto, db: Database) {
+    const result = await db.get('SELECT electionState FROM Election WHERE id = (?)', ballot.electionId);
+    if(!result) {
+        throw new BadRequestError(`Wahl mit ID ${ballot.electionId} existiert nicht.`);
+    }
+    if(result.electionState !== ElectionState.Counting) {
+        throw new BadRequestError(`Stimmen für die Wahl mit ID ${ballot.id} können derzeit nicht gezählt werden.`);
+    }
+    if(ballot.ballotIdentifier) {
+        const existingBallot = await db.get('SELECT id FROM Ballot WHERE ballotIdentifier = (?)', ballot.ballotIdentifier);
+        if(existingBallot) {
+            throw new BadRequestError(`Eine Stimme mit Stimmzettel-Nummer ${ballot.ballotIdentifier} wurde bereits erfasst`);
+        }
+    }
+}
+
