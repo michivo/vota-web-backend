@@ -16,6 +16,7 @@ class Main {
     }
 
     public async start() {
+        console.log('Starting Vota Web Application.');
         await this.server.start();
     }
 

@@ -55,15 +55,15 @@ export const generateExpress = (
             logger.error(error);
             switch (error.constructor) {
                 case BadRequestError:
-                    return res.status(400).json({message: error.message});
+                    return res.status(400).json({ message: error.message });
                 case UnauthorizedError:
-                    return res.status(401).json({message: error.message});
+                    return res.status(401).json({ message: error.message });
                 case ForbiddenError:
-                    return res.status(403).json({message: error.message});
+                    return res.status(403).json({ message: error.message });
                 case NotFoundError:
-                    return res.status(404).json({message: error.message});
+                    return res.status(404).json({ message: error.message });
                 case InternalError:
-                    return res.status(500).json({message: error.message});
+                    return res.status(500).json({ message: error.message });
                 default:
                     throw error;
             }
@@ -95,8 +95,13 @@ class Server {
 
     public async start() {
         this._logger.info('Migrating database');
-        await migrateDb();
-        this._logger.info('Migration complete');
+        try {
+            await migrateDb();
+            this._logger.info('Migration complete');
+        }
+        catch (err: unknown) { 
+            console.error(`Error migrating database: ${err}`);
+        }
 
         if (this._running) {
             this._logger.info('Server already started');

@@ -6,6 +6,8 @@ import { DatabaseOptions } from './databaseOptions';
 export async function openDb() {
     const dbOptions: DatabaseOptions = config.get('database');
 
+    console.log(`Opening database at ${dbOptions.path}`);
+
     return open({
         filename: dbOptions.path,
         driver: sqlite3.Database,

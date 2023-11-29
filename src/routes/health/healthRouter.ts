@@ -4,6 +4,7 @@ import { BadRequestError } from '../../infrastructure/errors';
 import HealthService from './healthService';
 import { authorizationHandler, roleBasedAuthorization } from '../../infrastructure/authentication';
 import { UserRole } from '../../typings/userRole';
+import { testVota } from '../../infrastructure/vota';
 
 const router = express.Router();
 const healthService = new HealthService();
@@ -48,6 +49,11 @@ router.get('/helloAdmin/:name', roleBasedAuthorization(UserRole.Admin),
         }
 
         res.send(healthService.sayHello(req.user!.name));
+});
+
+router.get('/helloVota', async (_req: express.Request, res: express.Response) => {
+    const response = await testVota();
+    res.send(response);
 });
 
 export default router;

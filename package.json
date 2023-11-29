@@ -10,7 +10,7 @@
     "lint": "eslint . --ext .ts",
     "tsc": "tsc",
     "build": "npm-run-all clean lint tsc copyfiles",
-    "copyfiles": "copyfiles src/features/**/*.json dist/ && copyfiles src/keys/*.json dist/",
+    "copyfiles": "copyfiles /database/* dist/ && copyfiles src/keys/*.json dist/",
     "maketypes": "cd src/typings && typeconv -f ts -t oapi *.ts"
   },
   "repository": {
@@ -47,6 +47,7 @@
     "@sendgrid/mail": "^7.7.0",
     "axios": "^1.6.0",
     "bcrypt": "^5.1.1",
+    "child_process": "^1.0.2",
     "config": "^3.3.9",
     "cors": "^2.8.5",
     "express": "^4.18.2",
