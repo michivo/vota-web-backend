@@ -38,10 +38,6 @@ ENV NODE_ENV=test
 COPY . /webapp/
 RUN npm run build
 
-RUN chown -R runuser /webapp/database
-RUN chmod 666 /webapp/database/*.db
-RUN chown -R runuser /webapp/database/*.db
-
 USER runuser
 EXPOSE 10081
 CMD ["npm", "start"]

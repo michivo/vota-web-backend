@@ -8,7 +8,7 @@ Run
 
 to build the Docker container. Run 
 
-    docker run -it -p 10081:10081 vota_web
+    docker run -it -p 10081:10081 --mount type=bind,source="$(pwd)"/database,target="/data" vota_web
 
 to run the Docker container. Run
 
