@@ -12,7 +12,8 @@ export interface ElectionDao {
     electionType: ElectionType,
     electionState: ElectionState,
     alreadyElectedMale: number,
-    alreadyElectedFemale: number,    
+    alreadyElectedFemale: number,
+    numberOfPositionsToElect: number,
 }
 
 export interface ElectionWithCandidatesDao extends ElectionDao {

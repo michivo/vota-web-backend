@@ -11,68 +11,68 @@ const electionService = new ElectionService();
 
 router.post('/', roleBasedAuthorization(UserRole.Admin),
     async (req: express.Request, res: express.Response, error: NextFunction) => {
-    try {
-        const election = req.body as ElectionDto;
-        if (!req.user?.id) {
-            throw new UnauthorizedError();
+        try {
+            const election = req.body as ElectionDto;
+            if (!req.user?.id) {
+                throw new UnauthorizedError();
+            }
+            const electionId = await electionService.createElection(election, req.user?.id);
+            res.send({ electionId });
         }
-        const electionId = await electionService.createElection(election, req.user?.id);
-        res.send({electionId});
-    }
-    catch (err) {
-        error(err);
-    }
-});
+        catch (err) {
+            error(err);
+        }
+    });
 
-router.get('/', authorizationHandler, 
+router.get('/', authorizationHandler,
     async (_req: express.Request, res: express.Response, error: NextFunction) => {
-    try {
-        const allElections = await electionService.getAllElections();
-        res.send(allElections);
-    }
-    catch (err) {
-        error(err);
-    }
-});
+        try {
+            const allElections = await electionService.getAllElections();
+            res.send(allElections);
+        }
+        catch (err) {
+            error(err);
+        }
+    });
 
 router.get('/:electionId', authorizationHandler,
     param('electionId').isNumeric(),
     async (req: express.Request, res: express.Response, error: NextFunction) => {
-    try {
-        const allElections = await electionService.getElection(parseInt(req.params.electionId));
-        res.send(allElections);
-    }
-    catch (err) {
-        error(err);
-    }
-});
-
-router.put('/:electionId', roleBasedAuthorization(UserRole.Admin), 
-    async (req: express.Request, res: express.Response, error: NextFunction) => {
-    try {
-        const election = req.body as ElectionWithCandidatesDto;
-        if (election.id.toString() !== req.params.electionId) {
-            throw new BadRequestError('Ungültige Wahl-ID');
+        try {
+            const allElections = await electionService.getElection(parseInt(req.params.electionId));
+            res.send(allElections);
         }
+        catch (err) {
+            error(err);
+        }
+    });
 
-        await electionService.updateElection(election);
-        res.send({ success: true });
-    }
-    catch (err) {
-        error(err);
-    }
-});
+router.put('/:electionId', roleBasedAuthorization(UserRole.Admin),
+    async (req: express.Request, res: express.Response, error: NextFunction) => {
+        try {
+            const election = req.body as ElectionWithCandidatesDto;
+            if (election.id.toString() !== req.params.electionId) {
+                throw new BadRequestError('Ungültige Wahl-ID');
+            }
 
-router.delete('/:electionId', roleBasedAuthorization(UserRole.Admin), 
+            await electionService.updateElection(election);
+            res.send({ success: true });
+        }
+        catch (err) {
+            error(err);
+        }
+    });
+
+router.delete('/:electionId', roleBasedAuthorization(UserRole.Admin),
     param('electionId').isNumeric(),
     async (req: express.Request, res: express.Response, error: NextFunction) => {
-    try {
-        await electionService.deleteElection(parseInt(req.params.electionId));
-        res.send({ success: true });
-    }
-    catch (err) {
-        error(err);
-    }
-});
+        try {
+            await electionService.deleteElection(parseInt(req.params.electionId));
+            res.send({ success: true });
+        }
+        catch (err) {
+            error(err);
+        }
+    });
 
 export default router;

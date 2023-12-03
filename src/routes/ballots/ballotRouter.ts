@@ -9,28 +9,28 @@ const ballotService = new BallotService();
 
 router.post('/', authorizationHandler,
     async (req: express.Request, res: express.Response, error: NextFunction) => {
-    try {
-        const ballot = req.body as BallotWithVotesDto;
-        if (!req.user?.id) {
-            throw new UnauthorizedError();
+        try {
+            const ballot = req.body as BallotWithVotesDto;
+            if (!req.user?.id) {
+                throw new UnauthorizedError();
+            }
+            const ballotId = await ballotService.addBallot(ballot, req.user?.id);
+            res.send({ ballotId });
         }
-        const ballotId = await ballotService.addBallot(ballot, req.user?.id);
-        res.send({ballotId});
-    }
-    catch (err) {
-        error(err);
-    }
-});
+        catch (err) {
+            error(err);
+        }
+    });
 
-router.get('/:electionId', authorizationHandler, 
+router.get('/:electionId', authorizationHandler,
     async (req: express.Request, res: express.Response, error: NextFunction) => {
-    try {
-        const allBallots = await ballotService.getBallots(parseInt(req.params.electionId));
-        res.send(allBallots);
-    }
-    catch (err) {
-        error(err);
-    }
-});
+        try {
+            const allBallots = await ballotService.getBallots(parseInt(req.params.electionId));
+            res.send(allBallots);
+        }
+        catch (err) {
+            error(err);
+        }
+    });
 
 export default router;

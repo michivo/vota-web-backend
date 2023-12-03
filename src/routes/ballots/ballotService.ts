@@ -9,9 +9,9 @@ export class BallotService {
     async getBallots(electionId: number): Promise<BallotInfoDto[]> {
         const db = await openDb();
         try {
-            const results = await db.all('SELECT Ballot.id, Ballot.additionalPeople, Ballot.ballotIdentifier, Ballot.ballotStation, ' + 
-            ' Ballot.dateCreatedUtc, Ballot.countingUserId, Ballot.electionId, Ballot.isValid, Ballot.notes, User.username, User.fullName ' +
-            ' FROM Ballot INNER JOIN User ON Ballot.countingUserId = User.Id WHERE electionId = (?)', electionId);
+            const results = await db.all('SELECT Ballot.id, Ballot.additionalPeople, Ballot.ballotIdentifier, Ballot.ballotStation, ' +
+                ' Ballot.dateCreatedUtc, Ballot.countingUserId, Ballot.electionId, Ballot.isValid, Ballot.notes, User.username, User.fullName ' +
+                ' FROM Ballot INNER JOIN User ON Ballot.countingUserId = User.Id WHERE electionId = (?)', electionId);
             const elections = results.map(e => e as BallotDao & { username: string, fullName: string });
             return elections.map(this.mapToBallotDto);
         }
@@ -36,18 +36,18 @@ export class BallotService {
                 $notes: ballot.notes,
             });
             console.debug(`inserted ballot with id ${result.lastID}`);
-            if(!result.lastID) {
+            if (!result.lastID) {
                 console.error('Ballot could not be inserted');
                 throw new InternalError('Ballot could not be inserted');
             }
-            for(const vote of ballot.votes) {
-                await db.run('INSERT INTO BallotItem ' + 
+            for (const vote of ballot.votes) {
+                await db.run('INSERT INTO BallotItem ' +
                     '(ballotId, candidateId, ballotOrder) VALUES ' +
                     '($ballotId, $candidateId, $ballotOrder)', {
-                        $ballotId: result.lastID,
-                        $candidateId: vote.candidateId,
-                        $ballotOrder: vote.order,
-                    });
+                    $ballotId: result.lastID,
+                    $candidateId: vote.candidateId,
+                    $ballotOrder: vote.order,
+                });
             }
 
             return result.lastID;
@@ -76,15 +76,15 @@ export class BallotService {
 
 async function checkIsBallotValid(ballot: BallotWithVotesDto, db: Database) {
     const result = await db.get('SELECT electionState FROM Election WHERE id = (?)', ballot.electionId);
-    if(!result) {
+    if (!result) {
         throw new BadRequestError(`Wahl mit ID ${ballot.electionId} existiert nicht.`);
     }
-    if(result.electionState !== ElectionState.Counting) {
+    if (result.electionState !== ElectionState.Counting) {
         throw new BadRequestError(`Stimmen für die Wahl mit ID ${ballot.id} können derzeit nicht gezählt werden.`);
     }
-    if(ballot.ballotIdentifier) {
+    if (ballot.ballotIdentifier) {
         const existingBallot = await db.get('SELECT id FROM Ballot WHERE ballotIdentifier = (?)', ballot.ballotIdentifier);
-        if(existingBallot) {
+        if (existingBallot) {
             throw new BadRequestError(`Eine Stimme mit Stimmzettel-Nummer ${ballot.ballotIdentifier} wurde bereits erfasst`);
         }
     }

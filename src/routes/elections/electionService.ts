@@ -68,14 +68,17 @@ export class ElectionService {
         try { // TODO user id check needed?
             console.debug(`inserting election${  JSON.stringify(election)}`);
             const result = await db.run('INSERT INTO Election ' +
-                '( title,  description,  createUserId,  dateCreated,  enforceGenderParity,  electionType,  electionState) VALUES ' +
-                '($title, $description, $createUserId, $dateCreated, $enforceGenderParity, $electionType, $electionState)', {
+                '( title,  description,  createUserId,  dateCreated,  enforceGenderParity,  electionType,  electionState,  alreadyElectedFemale,  alreadyElectedMale,  numberOfPositionsToElect) VALUES ' +
+                '($title, $description, $createUserId, $dateCreated, $enforceGenderParity, $electionType, $electionState, $alreadyElectedFemale, $alreadyElectedMale, $numberOfPositionsToElect)', {
                 $title: election.title,
                 $description: election.description,
                 $createUserId: userId,
                 $dateCreated: new Date(),
                 $enforceGenderParity: election.enforceGenderParity,
                 $electionType: election.electionType,
+                $alreadyElectedFemale: election.alreadyElectedFemale,
+                $alreadyElectedMale: election.alreadyElectedMale,
+                $numberOfPositionsToElect: election.numberOfPositionsToElect,                
                 $electionState: ElectionState.Creating,
             });
             console.debug(`inserted election with id ${result.lastID}`);
@@ -94,13 +97,19 @@ export class ElectionService {
                 'description = $description, ' +
                 'enforceGenderParity = $enforceGenderParity, ' +
                 'electionType = $electionType, ' +
-                'electionState = $electionState WHERE ' +
+                'electionState = $electionState, ' + 
+                'alreadyElectedFemale = $alreadyElectedFemale, ' +
+                'alreadyElectedMale = $alreadyElectedMale, ' +
+                'numberOfPositionsToElect = $numberOfPositionsToElect WHERE ' +
                 'Election.id = $electionId', {
                 $title: election.title,
                 $description: election.description,
                 $enforceGenderParity: election.enforceGenderParity,
                 $electionType: election.electionType,
                 $electionState: election.electionState,
+                $alreadyElectedFemale: election.alreadyElectedFemale,
+                $alreadyElectedMale: election.alreadyElectedMale,
+                $numberOfPositionsToElect: election.numberOfPositionsToElect,
                 $electionId: election.id,
             });
             if (election.candidates) {
@@ -206,6 +215,7 @@ export class ElectionService {
             electionState: election.electionState,
             alreadyElectedFemale: election.alreadyElectedFemale,
             alreadyElectedMale: election.alreadyElectedMale,
+            numberOfPositionsToElect: election.numberOfPositionsToElect,
         };
     }
 
