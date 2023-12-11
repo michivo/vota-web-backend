@@ -5,6 +5,7 @@ import { ElectionDto, ElectionWithCandidatesDto } from '../../typings/dtos/elect
 import { UserRole } from '../../typings/userRole';
 import { authorizationHandler, roleBasedAuthorization } from '../../infrastructure/authentication';
 import { param } from 'express-validator';
+import { CountElectionRequest } from '../../typings/dtos/countElectionRequest';
 
 const router = express.Router();
 const electionService = new ElectionService();
@@ -68,6 +69,19 @@ router.delete('/:electionId', roleBasedAuthorization(UserRole.Admin),
     async (req: express.Request, res: express.Response, error: NextFunction) => {
         try {
             await electionService.deleteElection(parseInt(req.params.electionId));
+            res.send({ success: true });
+        }
+        catch (err) {
+            error(err);
+        }
+    });
+
+router.post('/:electionId/countRequests', roleBasedAuthorization(UserRole.Admin),
+    param('electionId').isNumeric(),
+    async (req: express.Request, res: express.Response, error: NextFunction) => {
+        try {
+            const request = req.body as CountElectionRequest;
+            await electionService.countVotes(parseInt(req.params.electionId), request);
             res.send({ success: true });
         }
         catch (err) {

@@ -6,6 +6,9 @@ import { ElectionDao } from '../../typings/daos/electionDao';
 import { CandidateDto } from '../../typings/dtos/candidateDto';
 import { ElectionDto, ElectionWithCandidatesDto } from '../../typings/dtos/electionDto';
 import { ElectionState } from '../../typings/electionState';
+import { CountElectionRequest } from '../../typings/dtos/countElectionRequest';
+import { countVotes } from '../../infrastructure/vota';
+import { BallotWithVotesDao } from '../../typings/daos/ballotWithVotesDao';
 
 export class ElectionService {
     getElectionsForUser = async (userId: number): Promise<ElectionDto[]> => {
@@ -66,7 +69,7 @@ export class ElectionService {
     createElection = async (election: ElectionDto, userId: number): Promise<number | undefined> => {
         const db = await openDb();
         try { // TODO user id check needed?
-            console.debug(`inserting election${  JSON.stringify(election)}`);
+            console.debug(`inserting election${JSON.stringify(election)}`);
             const result = await db.run('INSERT INTO Election ' +
                 '( title,  description,  createUserId,  dateCreated,  enforceGenderParity,  electionType,  electionState,  alreadyElectedFemale,  alreadyElectedMale,  numberOfPositionsToElect) VALUES ' +
                 '($title, $description, $createUserId, $dateCreated, $enforceGenderParity, $electionType, $electionState, $alreadyElectedFemale, $alreadyElectedMale, $numberOfPositionsToElect)', {
@@ -78,7 +81,7 @@ export class ElectionService {
                 $electionType: election.electionType,
                 $alreadyElectedFemale: election.alreadyElectedFemale,
                 $alreadyElectedMale: election.alreadyElectedMale,
-                $numberOfPositionsToElect: election.numberOfPositionsToElect,                
+                $numberOfPositionsToElect: election.numberOfPositionsToElect,
                 $electionState: ElectionState.Creating,
             });
             console.debug(`inserted election with id ${result.lastID}`);
@@ -97,7 +100,7 @@ export class ElectionService {
                 'description = $description, ' +
                 'enforceGenderParity = $enforceGenderParity, ' +
                 'electionType = $electionType, ' +
-                'electionState = $electionState, ' + 
+                'electionState = $electionState, ' +
                 'alreadyElectedFemale = $alreadyElectedFemale, ' +
                 'alreadyElectedMale = $alreadyElectedMale, ' +
                 'numberOfPositionsToElect = $numberOfPositionsToElect WHERE ' +
@@ -202,6 +205,30 @@ export class ElectionService {
             db.close();
         }
     }
+
+    countVotes = async (electionId: number, request: CountElectionRequest) => {
+        const db = await openDb();
+        try { // TODO make a join?
+            const result = await db.get('SELECT * FROM Election WHERE id = (?)', electionId);
+            if (!result) {
+                throw new NotFoundError(`Wahl mit Id ${electionId} konnte nicht gefunden werden.`);
+            }
+
+            const candidates = await db.all('SELECT * FROM Candidate WHERE electionId = (?)', electionId);
+            const election = result as ElectionDao;
+            const candidateDaos = candidates.map(c => c as CandidateDao);
+
+            const results = await db.all('SELECT Ballot.id as ballotId, Ballot.ballotIdentifier, BallotItem.candidateId, BallotItem.ballotOrder ' + 
+            ' FROM Ballot LEFT JOIN BallotItem ON BallotItem.ballotId = Ballot.id WHERE Ballot.isValid = 1 AND Ballot.electionId = (?)', electionId);
+            const ballots = results.map(e => e as BallotWithVotesDao);
+
+            await countVotes(request.isTestRun, candidateDaos, election.enforceGenderParity, ballots);
+        }
+        finally {
+            db.close();
+        }
+    }
+
 
     private mapToElectionDto(election: ElectionDao): ElectionDto {
         return {

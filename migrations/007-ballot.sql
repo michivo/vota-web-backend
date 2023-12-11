@@ -14,7 +14,7 @@ CREATE TABLE Ballot (
   notes            TEXT NULL,
 
   FOREIGN KEY (countingUserId) REFERENCES User(id) ON UPDATE CASCADE
-  FOREIGN KEY (electionId) REFERENCES Elecetion(id) ON UPDATE CASCADE
+  FOREIGN KEY (electionId) REFERENCES Election(id) ON UPDATE CASCADE
 );
 
 CREATE TABLE BallotItem (

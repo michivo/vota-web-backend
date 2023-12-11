@@ -12,8 +12,8 @@ export class BallotService {
             const results = await db.all('SELECT Ballot.id, Ballot.additionalPeople, Ballot.ballotIdentifier, Ballot.ballotStation, ' +
                 ' Ballot.dateCreatedUtc, Ballot.countingUserId, Ballot.electionId, Ballot.isValid, Ballot.notes, User.username, User.fullName ' +
                 ' FROM Ballot INNER JOIN User ON Ballot.countingUserId = User.Id WHERE electionId = (?)', electionId);
-            const elections = results.map(e => e as BallotDao & { username: string, fullName: string });
-            return elections.map(this.mapToBallotDto);
+            const ballots = results.map(e => e as BallotDao & { username: string, fullName: string });
+            return ballots.map(this.mapToBallotDto);
         }
         finally {
             db.close();
