@@ -81,7 +81,7 @@ router.post('/:electionId/countRequests', roleBasedAuthorization(UserRole.Admin)
     async (req: express.Request, res: express.Response, error: NextFunction) => {
         try {
             const request = req.body as CountElectionRequest;
-            await electionService.countVotes(parseInt(req.params.electionId), request);
+            await electionService.countVotes(parseInt(req.params.electionId), req.user!.id, request);
             res.send({ success: true });
         }
         catch (err) {

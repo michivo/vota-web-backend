@@ -9,6 +9,7 @@ import { ElectionState } from '../../typings/electionState';
 import { CountElectionRequest } from '../../typings/dtos/countElectionRequest';
 import { countVotes } from '../../infrastructure/vota';
 import { BallotWithVotesDao } from '../../typings/daos/ballotWithVotesDao';
+import { getCsvData } from '../../infrastructure/csvService';
 
 export class ElectionService {
     getElectionsForUser = async (userId: number): Promise<ElectionDto[]> => {
@@ -206,7 +207,7 @@ export class ElectionService {
         }
     }
 
-    countVotes = async (electionId: number, request: CountElectionRequest) => {
+    countVotes = async (electionId: number, userId: number, request: CountElectionRequest) => {
         const db = await openDb();
         try { // TODO make a join?
             const result = await db.get('SELECT * FROM Election WHERE id = (?)', electionId);
@@ -218,11 +219,30 @@ export class ElectionService {
             const election = result as ElectionDao;
             const candidateDaos = candidates.map(c => c as CandidateDao);
 
-            const results = await db.all('SELECT Ballot.id as ballotId, Ballot.ballotIdentifier, BallotItem.candidateId, BallotItem.ballotOrder ' + 
-            ' FROM Ballot LEFT JOIN BallotItem ON BallotItem.ballotId = Ballot.id WHERE Ballot.isValid = 1 AND Ballot.electionId = (?)', electionId);
+            const results = await db.all('SELECT Ballot.id as ballotId, Ballot.ballotIdentifier, BallotItem.candidateId, BallotItem.ballotOrder ' +
+                ' FROM Ballot LEFT JOIN BallotItem ON BallotItem.ballotId = Ballot.id WHERE Ballot.isValid = 1 AND Ballot.electionId = (?)', electionId);
             const ballots = results.map(e => e as BallotWithVotesDao);
 
-            await countVotes(request.isTestRun, candidateDaos, election.enforceGenderParity, ballots);
+            const csvData = getCsvData(candidateDaos, ballots, election.enforceGenderParity);
+
+            const votingResult = await countVotes(csvData, election);
+
+            const dbSaveResult = await db.run('INSERT INTO VotingResults (electionId, userId, isTestRun, success, errorLog, detailedLog, protocol, ' +
+                'protocolFormatVersion, voterListCsv, votesCsv, statsData) VALUES ' +
+                '($electionId, $userId, $isTestRun, $success, $errorLog, $detailedLog, $protocol, $protocolFormatVersion, $voterListCsv, $votesCsv, $statsData)', {
+                $electionId: electionId,
+                $userId: userId,
+                $isTestRun: request.isTestRun,
+                $success: votingResult.success,
+                $errorLog: votingResult.errorLog,
+                $detailedLog: votingResult.detailedLog,
+                $protocol: JSON.stringify(votingResult.protocol),
+                $protocolFormatVersion: 1,
+                $voterListCsv: csvData.voterList,
+                $votesCsv: csvData.votes,
+                $statsData: votingResult.stats,
+            });
+            return dbSaveResult.lastID;
         }
         finally {
             db.close();

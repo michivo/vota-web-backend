@@ -3,9 +3,10 @@ import { randomUUID } from 'crypto';
 import config from 'config';
 import { VotaOptions } from './votaOptions';
 import { exec } from 'child_process';
-import { CandidateDao } from '../typings/daos/candidateDao';
-import { Gender } from '../typings/gender';
-import { BallotWithVotesDao } from '../typings/daos/ballotWithVotesDao';
+import { CsvData } from '../typings/csvData';
+import { VotaResultData } from '../typings/votaResultData';
+import { ElectionDao } from '../typings/daos/electionDao';
+import { ElectionType } from '../typings/electionType';
 
 export async function testVota(): Promise<string> {
     const votaOptions: VotaOptions = config.get('vota');
@@ -32,59 +33,58 @@ export async function testVota(): Promise<string> {
     }
 }
 
-export async function countVotes(isTestRun: boolean, candidates: Array<CandidateDao>, withGenderParity: boolean, ballots: BallotWithVotesDao[]) {
+export async function countVotes(csvData: CsvData, election: ElectionDao): Promise<VotaResultData> {
     const votaOptions: VotaOptions = config.get('vota');
-    let candidatesCsvData = '';
-    let ballotsCsvData = '';
-    for (const candidate of candidates) {
-        const cleanCandidateName = candidate.name.replaceAll(';', ':');
-        candidatesCsvData += `${cleanCandidateName};${candidate.gender === Gender.Female || !withGenderParity ? '1' : '0'}\r\n`;
-        ballotsCsvData += `;${cleanCandidateName}`;
-    }
-    ballotsCsvData += '\r\n';
-    const groupedBallots = [] as Array<{ ballotId: number, items: BallotWithVotesDao[] }>;
-    for (const ballot of ballots) {
-        let ballotGroup = groupedBallots.find(g => g.ballotId === ballot.ballotId);
-        if (!ballotGroup) {
-            ballotGroup = { ballotId: ballot.ballotId, items: [] };
-            groupedBallots.push(ballotGroup);
-        }
-
-        ballotGroup.items.push(ballot);
-    }
-    for (const ballot of groupedBallots) {
-        ballotsCsvData += `${ballot.items[0].ballotIdentifier ?? crypto.randomUUID()};`;
-        for (const candidate of candidates) {
-            const item = ballot.items.find(bi => bi.candidateId === candidate.id);
-            if(!item) {
-                ballotsCsvData += ';';
-            }
-            else {
-                ballotsCsvData += `${item.ballotOrder};`;
-            }
-        }
-        ballotsCsvData = `${ballotsCsvData.slice(0, -1)}\r\n`;
-    }
 
     const candidateFilename = `${randomUUID()}.csv`;
     const ballotsFilename = `${randomUUID()}.csv`;
 
-    await promises.writeFile(`${votaOptions.tempFolder}/${candidateFilename}`, candidatesCsvData);
-    await promises.writeFile(`${votaOptions.tempFolder}/${ballotsFilename}`, ballotsCsvData);
-    const protocolFilename = `${randomUUID()}.txt`;
+    await promises.writeFile(`${votaOptions.tempFolder}/${candidateFilename}`, csvData.voterList);
+    await promises.writeFile(`${votaOptions.tempFolder}/${ballotsFilename}`, csvData.votes);
+    const protocolFilename = `${randomUUID()}.json`;
+    const statsFilename = `${randomUUID()}.txt`;
 
-    const dotnetCommand = `dotnet ${votaOptions.cliPath} --spreadsheetfile=${votaOptions.tempFolder}/${ballotsFilename} --candidates=${votaOptions.tempFolder}/${candidateFilename} -p ${votaOptions.tempFolder}/${protocolFilename} -s 2 -t QuotedSTV`;
-    await new Promise((resolve, reject) => {
+    const dotnetCommand = `dotnet ${votaOptions.cliPath} ` + 
+        `--spreadsheetfile=${votaOptions.tempFolder}/${ballotsFilename} ` +
+        `--candidates=${votaOptions.tempFolder}/${candidateFilename} ` + 
+        `-p ${votaOptions.tempFolder}/${protocolFilename} ` +
+        `-s ${election.numberOfPositionsToElect} ` +
+        `-e ${election.alreadyElectedMale + election.alreadyElectedFemale} ` + 
+        `-E ${election.alreadyElectedFemale} ` + 
+        `-S ${votaOptions.tempFolder}/${statsFilename} ` +
+        `-t ${election.electionType === ElectionType.OrderedSingleTransferableVote ? 'RankedSTV' : election.electionType === ElectionType.UnorderedSingleTransferableVote ? 'QuotedSTV' : 'STV'}`;
+    const result = await new Promise<VotaResultData>((resolve) => {
         exec(dotnetCommand, (err, stdout, stderr) => {
             if (err) {
                 console.error(`Rejecting with code ${err}`);
-                reject(err);
+                resolve({
+                    success: false,
+                    errorLog: err.message,
+                    detailedLog: `${stdout}\r\n --- Errors: ${stderr}`,
+                    protocol: undefined,
+                    stats: undefined,
+                });
             }
             else {
-                console.error('Resolving');
-                resolve(stdout + stderr);
+                resolve({
+                    success: true,
+                    errorLog: '',
+                    detailedLog: `${stdout}\r\n --- Errors: ${stderr}`,
+                    protocol: undefined,
+                    stats: undefined,
+                });
             }
         });
     }
     );
+
+    if(result.success) {
+        const protocol = await promises.readFile(`${votaOptions.tempFolder}/${protocolFilename}`);
+        result.protocol = JSON.parse(protocol.toString('utf8'));
+
+        const stats = await promises.readFile(`${votaOptions.tempFolder}/${statsFilename}`);
+        result.stats = stats.toString('utf8');
+    }
+
+    return result;
 }
