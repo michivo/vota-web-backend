@@ -1,8 +1,11 @@
 import express, { NextFunction } from 'express';
-import { authorizationHandler } from '../../infrastructure/authentication';
+import { authorizationHandler, roleBasedAuthorization } from '../../infrastructure/authentication';
 import { UnauthorizedError } from '../../infrastructure/errors';
 import { BallotWithVotesDto } from '../../typings/dtos/ballotDto';
 import { BallotService } from './ballotService';
+import { UserRole } from '../../typings/userRole';
+import { DeleteBallotRequest } from '../../typings/dtos/deleteBallotRequest';
+import { body } from 'express-validator';
 
 const router = express.Router();
 const ballotService = new BallotService();
@@ -32,5 +35,18 @@ router.get('/:electionId', authorizationHandler,
             error(err);
         }
     });
+
+router.post('/deleteRequests', roleBasedAuthorization(UserRole.Admin),  
+    body('deleteReason').notEmpty(),
+    async (req: express.Request, res: express.Response, error: NextFunction) => {
+    try {
+        const deleteRequest = req.body as DeleteBallotRequest;
+        const allBallots = await ballotService.deleteBallot(deleteRequest, req.user!.id);
+        res.send(allBallots);
+    }
+    catch (err) {
+        error(err);
+    }
+});
 
 export default router;

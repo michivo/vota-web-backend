@@ -8,6 +8,10 @@ export interface BallotDao {
     ballotIdentifier: string | undefined | null,
     isValid: boolean,
     notes: string | undefined | null,
+    isDeleted: boolean,
+    deleteUserId: number,
+    deleteReason: string | undefined | null,
+    deleteDateUtc: Date,
 }
 
 // id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,3 +23,7 @@ export interface BallotDao {
 // ballotIdentifier TEXT NULL,
 // isValid          INTEGER NOT NULL,
 // notes            TEXT NULL,
+// isDeleted        INTEGER NOT NULL DEFAULT 0,
+// deleteUserId     INTEGER NULL,
+// deleteReason     TEXT NULL,
+// deleteDateUtc    DATETIME NULL,

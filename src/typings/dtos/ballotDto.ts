@@ -9,6 +9,11 @@ export interface BallotInfoDto {
     ballotIdentifier: string,
     isValid: boolean,
     notes: string,
+    isDeleted: boolean,
+    deleteReason?: string | null,
+    deleteUserName?: string | null,
+    deleteUserId?: number,
+    dateDeleted?: Date,
 }
 
 export interface BallotItemDto {

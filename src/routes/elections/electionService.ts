@@ -220,7 +220,7 @@ export class ElectionService {
             const candidateDaos = candidates.map(c => c as CandidateDao);
 
             const results = await db.all('SELECT Ballot.id as ballotId, Ballot.ballotIdentifier, BallotItem.candidateId, BallotItem.ballotOrder ' +
-                ' FROM Ballot LEFT JOIN BallotItem ON BallotItem.ballotId = Ballot.id WHERE Ballot.isValid = 1 AND Ballot.electionId = (?)', electionId);
+                ' FROM Ballot LEFT JOIN BallotItem ON BallotItem.ballotId = Ballot.id WHERE Ballot.isValid = 1 AND Ballot.isDeleted = 0 AND Ballot.electionId = (?)', electionId);
             const ballots = results.map(e => e as BallotWithVotesDao);
 
             const csvData = getCsvData(candidateDaos, ballots, election.enforceGenderParity);

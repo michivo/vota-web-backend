@@ -4,15 +4,19 @@ import { BadRequestError, InternalError } from '../../infrastructure/errors';
 import { BallotDao } from '../../typings/daos/ballotDao';
 import { BallotInfoDto, BallotWithVotesDto } from '../../typings/dtos/ballotDto';
 import { ElectionState } from '../../typings/electionState';
+import { DeleteBallotRequest } from '../../typings/dtos/deleteBallotRequest';
 
 export class BallotService {
     async getBallots(electionId: number): Promise<BallotInfoDto[]> {
         const db = await openDb();
         try {
             const results = await db.all('SELECT Ballot.id, Ballot.additionalPeople, Ballot.ballotIdentifier, Ballot.ballotStation, ' +
-                ' Ballot.dateCreatedUtc, Ballot.countingUserId, Ballot.electionId, Ballot.isValid, Ballot.notes, User.username, User.fullName ' +
-                ' FROM Ballot INNER JOIN User ON Ballot.countingUserId = User.Id WHERE electionId = (?)', electionId);
-            const ballots = results.map(e => e as BallotDao & { username: string, fullName: string });
+                ' Ballot.dateCreatedUtc, Ballot.countingUserId, Ballot.electionId, Ballot.isValid, Ballot.notes, ' +
+                ' Ballot.isDeleted, Ballot.deleteUserId, Ballot.deleteReason, Ballot.deleteDateUtc, CountingUser.username, CountingUser.fullName, ' +
+                ' DeleteUser.username as deleteUsername, DeleteUser.fullName as deleteUserFullName ' +
+                ' FROM Ballot INNER JOIN User CountingUser ON Ballot.countingUserId = CountingUser.Id ' +
+                ' LEFT JOIN User DeleteUser ON Ballot.deleteUserId = DeleteUser.Id WHERE electionId = (?)', electionId);
+            const ballots = results.map(e => e as BallotDao & { username: string, fullName: string, deleteUsername?: string, deleteUserFullName?: string });
             return ballots.map(this.mapToBallotDto);
         }
         finally {
@@ -25,8 +29,8 @@ export class BallotService {
         try { // TODO election state check, ballot number uniqueness check
             await checkIsBallotValid(ballot, db);
             const result = await db.run('INSERT INTO Ballot ' +
-                '(additionalPeople,   ballotIdentifier,  ballotStation,  countingUserId,  electionId,  isValid,  notes) VALUES ' +
-                '($additionalPeople, $ballotIdentifier, $ballotStation, $countingUserId, $electionId, $isValid, $notes)', {
+                '(additionalPeople,   ballotIdentifier,  ballotStation,  countingUserId,  electionId,  isValid,  notes, deleteUser) VALUES ' +
+                '($additionalPeople, $ballotIdentifier, $ballotStation, $countingUserId, $electionId, $isValid, $notes, NULL)', {
                 $additionalPeople: ballot.additionalPeople,
                 $ballotIdentifier: ballot.ballotIdentifier,
                 $ballotStation: ballot.ballotStation,
@@ -57,7 +61,24 @@ export class BallotService {
         }
     }
 
-    private mapToBallotDto(ballotDao: BallotDao & { username: string, fullName: string }): BallotInfoDto {
+    deleteBallot = async (deleteRequest: DeleteBallotRequest, userId: number) => {
+        const db = await openDb();
+        try {
+            await db.run('UPDATE Ballot SET isDeleted = 1, deleteUserId = $userId, ' +
+                'deleteReason = $deleteReason, deleteDateUtc = $deleteDateUtc WHERE ' +
+                'AND Ballot.id = $ballotId', {
+                $userId: userId,
+                $deleteReason: deleteRequest.deleteReason,
+                $deleteDateUtc: new Date(),
+                $ballotId: deleteRequest.ballotId,
+            });
+        }
+        finally {
+            db.close();
+        }
+    }
+
+    private mapToBallotDto(ballotDao: BallotDao & { username: string, fullName: string, deleteUsername?: string, deleteUserFullName?: string }): BallotInfoDto {
         return {
             id: ballotDao.id,
             additionalPeople: ballotDao.additionalPeople || '',
@@ -69,6 +90,11 @@ export class BallotService {
             isValid: ballotDao.isValid,
             notes: ballotDao.notes || '',
             countingUserName: ballotDao.fullName || ballotDao.username,
+            isDeleted: ballotDao.isDeleted,
+            dateDeleted: ballotDao.deleteDateUtc,
+            deleteReason: ballotDao.deleteReason,
+            deleteUserId: ballotDao.deleteUserId,
+            deleteUserName: ballotDao.isDeleted ? null : ballotDao.deleteUserFullName || ballotDao.deleteUsername,
         };
     }
 
@@ -83,7 +109,7 @@ async function checkIsBallotValid(ballot: BallotWithVotesDto, db: Database) {
         throw new BadRequestError(`Stimmen für die Wahl mit ID ${ballot.id} können derzeit nicht gezählt werden.`);
     }
     if (ballot.ballotIdentifier) {
-        const existingBallot = await db.get('SELECT id FROM Ballot WHERE ballotIdentifier = (?)', ballot.ballotIdentifier);
+        const existingBallot = await db.get('SELECT id FROM Ballot WHERE ballotIdentifier = (?) AND isDeleted = 0', ballot.ballotIdentifier);
         if (existingBallot) {
             throw new BadRequestError(`Eine Stimme mit Stimmzettel-Nummer ${ballot.ballotIdentifier} wurde bereits erfasst`);
         }
