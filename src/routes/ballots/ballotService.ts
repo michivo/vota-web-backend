@@ -2,12 +2,12 @@ import { Database } from 'sqlite';
 import { openDb } from '../../infrastructure/database';
 import { BadRequestError, InternalError } from '../../infrastructure/errors';
 import { BallotDao } from '../../typings/daos/ballotDao';
-import { BallotInfoDto, BallotWithVotesDto } from '../../typings/dtos/ballotDto';
+import { BallotItemDto, BallotWithVotesDto } from '../../typings/dtos/ballotDto';
 import { ElectionState } from '../../typings/electionState';
 import { DeleteBallotRequest } from '../../typings/dtos/deleteBallotRequest';
 
 export class BallotService {
-    async getBallots(electionId: number): Promise<BallotInfoDto[]> {
+    async getBallots(electionId: number): Promise<BallotWithVotesDto[]> {
         const db = await openDb();
         try {
             const results = await db.all('SELECT Ballot.id, Ballot.additionalPeople, Ballot.ballotIdentifier, Ballot.ballotStation, ' +
@@ -17,7 +17,11 @@ export class BallotService {
                 ' FROM Ballot INNER JOIN User CountingUser ON Ballot.countingUserId = CountingUser.Id ' +
                 ' LEFT JOIN User DeleteUser ON Ballot.deleteUserId = DeleteUser.Id WHERE electionId = (?)', electionId);
             const ballots = results.map(e => e as BallotDao & { username: string, fullName: string, deleteUsername?: string, deleteUserFullName?: string });
-            return ballots.map(this.mapToBallotDto);
+            const ballotIds = ballots.map(b => b.id);
+            const ballotItems = await db.all('SELECT BallotItem.id, BallotItem.ballotId, BallotItem.candidateId, BallotItem.ballotOrder, Candidate.name as candidateName ' + 
+                `FROM BallotItem INNER JOIN Candidate ON Candidate.id = BallotItem.candidateId WHERE ballotId IN (${ballotIds.map(() => '?').join(',')})`, ballotIds);
+
+            return ballots.map((b) => this.mapToBallotDto(b, ballotItems.map(bi => bi as BallotItemDto).filter(bi => bi.ballotId === b.id)));
         }
         finally {
             db.close();
@@ -29,14 +33,14 @@ export class BallotService {
         try { // TODO election state check, ballot number uniqueness check
             await checkIsBallotValid(ballot, db);
             const result = await db.run('INSERT INTO Ballot ' +
-                '(additionalPeople,   ballotIdentifier,  ballotStation,  countingUserId,  electionId,  isValid,  notes, deleteUser) VALUES ' +
+                '(additionalPeople,   ballotIdentifier,  ballotStation,  countingUserId,  electionId,  isValid,  notes, deleteUserId) VALUES ' +
                 '($additionalPeople, $ballotIdentifier, $ballotStation, $countingUserId, $electionId, $isValid, $notes, NULL)', {
                 $additionalPeople: ballot.additionalPeople,
                 $ballotIdentifier: ballot.ballotIdentifier,
                 $ballotStation: ballot.ballotStation,
                 $countingUserId: userId,
                 $electionId: ballot.electionId,
-                $isValid: 1,
+                $isValid: ballot.isValid,
                 $notes: ballot.notes,
             });
             console.debug(`inserted ballot with id ${result.lastID}`);
@@ -66,7 +70,7 @@ export class BallotService {
         try {
             await db.run('UPDATE Ballot SET isDeleted = 1, deleteUserId = $userId, ' +
                 'deleteReason = $deleteReason, deleteDateUtc = $deleteDateUtc WHERE ' +
-                'AND Ballot.id = $ballotId', {
+                'Ballot.id = $ballotId', {
                 $userId: userId,
                 $deleteReason: deleteRequest.deleteReason,
                 $deleteDateUtc: new Date(),
@@ -78,7 +82,7 @@ export class BallotService {
         }
     }
 
-    private mapToBallotDto(ballotDao: BallotDao & { username: string, fullName: string, deleteUsername?: string, deleteUserFullName?: string }): BallotInfoDto {
+    private mapToBallotDto(ballotDao: BallotDao & { username: string, fullName: string, deleteUsername?: string, deleteUserFullName?: string }, items: BallotItemDto[]): BallotWithVotesDto {
         return {
             id: ballotDao.id,
             additionalPeople: ballotDao.additionalPeople || '',
@@ -94,7 +98,8 @@ export class BallotService {
             dateDeleted: ballotDao.deleteDateUtc,
             deleteReason: ballotDao.deleteReason,
             deleteUserId: ballotDao.deleteUserId,
-            deleteUserName: ballotDao.isDeleted ? null : ballotDao.deleteUserFullName || ballotDao.deleteUsername,
+            deleteUserName: ballotDao.isDeleted ? ballotDao.deleteUserFullName || ballotDao.deleteUsername : null,
+            votes: items,
         };
     }
 
