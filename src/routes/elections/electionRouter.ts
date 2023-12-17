@@ -89,4 +89,16 @@ router.post('/:electionId/countRequests', roleBasedAuthorization(UserRole.Admin)
         }
     });
 
+router.get('/:electionId/results', roleBasedAuthorization(UserRole.Admin),
+    param('electionId').isNumeric(),
+    async (req: express.Request, res: express.Response, error: NextFunction) => {
+        try {
+            const result = await electionService.getResults(parseInt(req.params.electionId));
+            res.send(result);
+        }
+        catch (err) {
+            error(err);
+        }
+    });
+
 export default router;

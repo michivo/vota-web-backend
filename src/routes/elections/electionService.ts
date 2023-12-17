@@ -10,6 +10,8 @@ import { CountElectionRequest } from '../../typings/dtos/countElectionRequest';
 import { countVotes } from '../../infrastructure/vota';
 import { BallotWithVotesDao } from '../../typings/daos/ballotWithVotesDao';
 import { getCsvData } from '../../infrastructure/csvService';
+import { VotingResultsDao } from '../../typings/daos/votingResultsDao';
+import { VotingResultsDto } from '../../typings/dtos/votingResultsDto';
 
 export class ElectionService {
     getElectionsForUser = async (userId: number): Promise<ElectionDto[]> => {
@@ -170,7 +172,6 @@ export class ElectionService {
         const db = await openDb();
         try {
             console.debug(`Updating candidates for election ${electionId}`);
-            console.debug(candidates);
             for (const candidate of candidates) {
                 await db.run('UPDATE Candidate SET ballotOrder = $ballotOrder, name = $name, ' +
                     'description = $description, gender = $gender WHERE ' +
@@ -249,6 +250,38 @@ export class ElectionService {
         }
     }
 
+    getResults = async (electionId: number) => {
+        const db = await openDb();
+        try {
+            const results = await db.all('SELECT VotingResults.id, VotingResults.electionId, VotingResults.userId, VotingResults.isTestRun, ' + 
+            ' VotingResults.dateCreatedUtc, VotingResults.success, VotingResults.errorLog, VotingResults.detailedLog, VotingResults.protocolFormatVersion, ' +
+            ' VotingResults.protocol, VotingResults.voterListCsv, VotingResults.votesCsv, VotingResults.statsData, election.title, ' +
+            ' User.username as username, User.fullName as fullName FROM VotingResults ' + 
+            ' INNER JOIN Election ON VotingResults.electionId = Election.id INNER JOIN User on User.id = VotingResults.userId WHERE electionId = (?)', electionId);
+            const votingResults = results as Array<VotingResultsDao & { username: string, fullName: string, title: string }>;
+            const votingResultDtos : VotingResultsDto[] = votingResults.map(v => ({
+                id: v.id,
+                electionId: v.electionId,
+                userId: v.userId,
+                isTestRun: v.isTestRun,
+                dateCreatedUtc: v.dateCreatedUtc,
+                success: v.success,
+                errorLog: v.errorLog,
+                detailedLog: v.detailedLog,
+                protocol: JSON.parse(v.protocol),
+                protocolFormatVersion: v.protocolFormatVersion,
+                voterListCsv: v.voterListCsv,
+                votesCsv: v.votesCsv,
+                statsData: v.statsData,
+                electionName: v.title,
+                username: v.username,
+            }));
+            return votingResultDtos;
+        }
+        finally {
+            db.close();
+        }
+    }
 
     private mapToElectionDto(election: ElectionDao): ElectionDto {
         return {
