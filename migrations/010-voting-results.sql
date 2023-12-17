@@ -15,8 +15,7 @@ CREATE TABLE VotingResults (
     protocolFormatVersion NUMERIC NOT NULL,
     voterListCsv   TEXT NOT NULL,
     votesCsv       TEXT NOT NULL,
-    statsData      TEXT NOT NULL
-
+    statsData      TEXT NOT NULL,
 
     FOREIGN KEY (electionId) REFERENCES Election(id) ON UPDATE CASCADE
     FOREIGN KEY (userId) REFERENCES User(id) ON UPDATE CASCADE
