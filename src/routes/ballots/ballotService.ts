@@ -114,7 +114,7 @@ async function checkIsBallotValid(ballot: BallotWithVotesDto, db: Database) {
         throw new BadRequestError(`Stimmen für die Wahl mit ID ${ballot.id} können derzeit nicht gezählt werden.`);
     }
     if (ballot.ballotIdentifier) {
-        const existingBallot = await db.get('SELECT id FROM Ballot WHERE ballotIdentifier = (?) AND isDeleted = 0', ballot.ballotIdentifier);
+        const existingBallot = await db.get('SELECT id FROM Ballot WHERE ballotIdentifier = (?) AND isDeleted = 0 AND electionId = (?)', ballot.ballotIdentifier, ballot.electionId);
         if (existingBallot) {
             throw new BadRequestError(`Eine Stimme mit Stimmzettel-Nummer ${ballot.ballotIdentifier} wurde bereits erfasst`);
         }
