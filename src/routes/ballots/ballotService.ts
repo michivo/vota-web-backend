@@ -5,6 +5,7 @@ import { BallotDao } from '../../typings/daos/ballotDao';
 import { BallotItemDto, BallotWithVotesDto } from '../../typings/dtos/ballotDto';
 import { ElectionState } from '../../typings/electionState';
 import { DeleteBallotRequest } from '../../typings/dtos/deleteBallotRequest';
+import { UserRole } from '../../typings/userRole';
 
 export class BallotService {
     async getBallots(electionId: number): Promise<BallotWithVotesDto[]> {
@@ -28,10 +29,10 @@ export class BallotService {
         }
     }
 
-    async addBallot(ballot: BallotWithVotesDto, userId: number): Promise<number | undefined> {
+    async addBallot(ballot: BallotWithVotesDto, userId: number, role: UserRole): Promise<number | undefined> {
         const db = await openDb();
-        try { // TODO election state check, ballot number uniqueness check
-            await checkIsBallotValid(ballot, db);
+        try {
+            await checkIsBallotValid(ballot, db, role);
             const result = await db.run('INSERT INTO Ballot ' +
                 '(additionalPeople,   ballotIdentifier,  ballotStation,  countingUserId,  electionId,  isValid,  notes, deleteUserId) VALUES ' +
                 '($additionalPeople, $ballotIdentifier, $ballotStation, $countingUserId, $electionId, $isValid, $notes, NULL)', {
@@ -105,13 +106,13 @@ export class BallotService {
 
 }
 
-async function checkIsBallotValid(ballot: BallotWithVotesDto, db: Database) {
+async function checkIsBallotValid(ballot: BallotWithVotesDto, db: Database, role: UserRole) {
     const result = await db.get('SELECT electionState FROM Election WHERE id = (?)', ballot.electionId);
     if (!result) {
         throw new BadRequestError(`Wahl mit ID ${ballot.electionId} existiert nicht.`);
     }
-    if (result.electionState !== ElectionState.Counting) {
-        throw new BadRequestError(`Stimmen für die Wahl mit ID ${ballot.id} können derzeit nicht gezählt werden.`);
+    if (result.electionState !== ElectionState.Counting && role !== UserRole.Admin) {
+        throw new BadRequestError(`Stimmen für die Wahl mit ID ${ballot.electionId} können derzeit nicht gezählt werden.`);
     }
     if (ballot.ballotIdentifier) {
         const existingBallot = await db.get('SELECT id FROM Ballot WHERE ballotIdentifier = (?) AND isDeleted = 0 AND electionId = (?)', ballot.ballotIdentifier, ballot.electionId);

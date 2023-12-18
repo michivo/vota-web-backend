@@ -17,7 +17,7 @@ router.post('/', authorizationHandler,
             if (!req.user?.id) {
                 throw new UnauthorizedError();
             }
-            const ballotId = await ballotService.addBallot(ballot, req.user?.id);
+            const ballotId = await ballotService.addBallot(ballot, req.user.id, req.user.role);
             res.send({ ballotId });
         }
         catch (err) {
