@@ -28,7 +28,7 @@ router.post('/', authorizationHandler,
 router.get('/:electionId', authorizationHandler,
     async (req: express.Request, res: express.Response, error: NextFunction) => {
         try {
-            const allBallots = await ballotService.getBallots(parseInt(req.params.electionId));
+            const allBallots = await ballotService.getBallots(parseInt(req.params.electionId), req.user!.role);
             res.send(allBallots);
         }
         catch (err) {
@@ -41,7 +41,7 @@ router.post('/deleteRequests', roleBasedAuthorization(UserRole.Admin),
     async (req: express.Request, res: express.Response, error: NextFunction) => {
     try {
         const deleteRequest = req.body as DeleteBallotRequest;
-        const allBallots = await ballotService.deleteBallot(deleteRequest, req.user!.id);
+        const allBallots = await ballotService.deleteBallot(deleteRequest, req.user!.id, req.user!.role);
         res.send(allBallots);
     }
     catch (err) {

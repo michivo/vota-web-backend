@@ -8,9 +8,10 @@ import { DeleteBallotRequest } from '../../typings/dtos/deleteBallotRequest';
 import { UserRole } from '../../typings/userRole';
 
 export class BallotService {
-    async getBallots(electionId: number): Promise<BallotWithVotesDto[]> {
+    async getBallots(electionId: number, role: UserRole): Promise<BallotWithVotesDto[]> {
         const db = await openDb();
         try {
+            const canDelete = await checkCanDelete(db, electionId, role);
             const results = await db.all('SELECT Ballot.id, Ballot.additionalPeople, Ballot.ballotIdentifier, Ballot.ballotStation, ' +
                 ' Ballot.dateCreatedUtc, Ballot.countingUserId, Ballot.electionId, Ballot.isValid, Ballot.notes, ' +
                 ' Ballot.isDeleted, Ballot.deleteUserId, Ballot.deleteReason, Ballot.deleteDateUtc, CountingUser.username, CountingUser.fullName, ' +
@@ -22,7 +23,7 @@ export class BallotService {
             const ballotItems = await db.all('SELECT BallotItem.id, BallotItem.ballotId, BallotItem.candidateId, BallotItem.ballotOrder, Candidate.name as candidateName ' + 
                 `FROM BallotItem INNER JOIN Candidate ON Candidate.id = BallotItem.candidateId WHERE ballotId IN (${ballotIds.map(() => '?').join(',')})`, ballotIds);
 
-            return ballots.map((b) => this.mapToBallotDto(b, ballotItems.map(bi => bi as BallotItemDto).filter(bi => bi.ballotId === b.id)));
+            return ballots.map((b) => this.mapToBallotDto(b, canDelete, ballotItems.map(bi => bi as BallotItemDto).filter(bi => bi.ballotId === b.id)));
         }
         finally {
             db.close();
@@ -66,16 +67,20 @@ export class BallotService {
         }
     }
 
-    deleteBallot = async (deleteRequest: DeleteBallotRequest, userId: number) => {
+    deleteBallot = async (deleteRequest: DeleteBallotRequest, userId: number, role: UserRole) => {
         const db = await openDb();
         try {
+            if(!checkCanDelete(db, deleteRequest.electionId, role)) {
+                throw new BadRequestError('Stimmzettel kann nicht mehr gelöscht werden.');
+            }
             await db.run('UPDATE Ballot SET isDeleted = 1, deleteUserId = $userId, ' +
                 'deleteReason = $deleteReason, deleteDateUtc = $deleteDateUtc WHERE ' +
-                'Ballot.id = $ballotId', {
+                'Ballot.id = $ballotId AND Ballot.electionId = $electionId', {
                 $userId: userId,
                 $deleteReason: deleteRequest.deleteReason,
                 $deleteDateUtc: new Date(),
                 $ballotId: deleteRequest.ballotId,
+                $electionId: deleteRequest.electionId,
             });
         }
         finally {
@@ -83,7 +88,8 @@ export class BallotService {
         }
     }
 
-    private mapToBallotDto(ballotDao: BallotDao & { username: string, fullName: string, deleteUsername?: string, deleteUserFullName?: string }, items: BallotItemDto[]): BallotWithVotesDto {
+    private mapToBallotDto(ballotDao: BallotDao & { username: string, fullName: string, deleteUsername?: string, deleteUserFullName?: string }, 
+        canDelete: boolean, items: BallotItemDto[]): BallotWithVotesDto {
         return {
             id: ballotDao.id,
             additionalPeople: ballotDao.additionalPeople || '',
@@ -101,9 +107,17 @@ export class BallotService {
             deleteUserId: ballotDao.deleteUserId,
             deleteUserName: ballotDao.isDeleted ? ballotDao.deleteUserFullName || ballotDao.deleteUsername : null,
             votes: items,
+            canDelete,
         };
     }
+}
 
+async function checkCanDelete(db: Database, electionId: number, role: UserRole) {
+    const result = await db.get('SELECT electionState FROM Election WHERE id = (?)', electionId);
+    if (!result) {
+        throw new BadRequestError(`Wahl mit ID ${electionId} existiert nicht.`);
+    }
+    return result.electionState === ElectionState.Counting || (result.electionState === ElectionState.CountingComplete && role === UserRole.Admin);
 }
 
 async function checkIsBallotValid(ballot: BallotWithVotesDto, db: Database, role: UserRole) {
@@ -113,6 +127,9 @@ async function checkIsBallotValid(ballot: BallotWithVotesDto, db: Database, role
     }
     if (result.electionState !== ElectionState.Counting && role !== UserRole.Admin) {
         throw new BadRequestError(`Stimmen für die Wahl mit ID ${ballot.electionId} können derzeit nicht gezählt werden.`);
+    }
+    if(result.electionState === ElectionState.Done) {
+        throw new BadRequestError(`Stimmen für die Wahl mit ID ${ballot.electionId} können nicht mehr abgegeben oder gelöscht werden.`);
     }
     if (ballot.ballotIdentifier) {
         const existingBallot = await db.get('SELECT id FROM Ballot WHERE ballotIdentifier = (?) AND isDeleted = 0 AND electionId = (?)', ballot.ballotIdentifier, ballot.electionId);

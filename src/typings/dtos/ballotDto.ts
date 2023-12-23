@@ -14,6 +14,7 @@ export interface BallotInfoDto {
     deleteUserName?: string | null,
     deleteUserId?: number,
     dateDeleted?: Date,
+    canDelete: boolean,
 }
 
 export interface BallotItemDto {
