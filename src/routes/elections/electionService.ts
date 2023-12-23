@@ -11,7 +11,8 @@ import { countVotes } from '../../infrastructure/vota';
 import { BallotWithVotesDao } from '../../typings/daos/ballotWithVotesDao';
 import { getCsvData } from '../../infrastructure/csvService';
 import { VotingResultsDao } from '../../typings/daos/votingResultsDao';
-import { VotingResultsDto } from '../../typings/dtos/votingResultsDto';
+import { VotingResultDto, VotingResultsDto } from '../../typings/dtos/votingResultsDto';
+import { toUtcDate } from '../../helpers/dateHelper';
 
 export class ElectionService {
     getElectionsForUser = async (userId: number): Promise<ElectionDto[]> => {
@@ -250,21 +251,26 @@ export class ElectionService {
         }
     }
 
-    getResults = async (electionId: number) => {
+    getResults = async (electionId: number): Promise<VotingResultsDto> => {
         const db = await openDb();
         try {
+            const electionInfo = await db.get('SELECT id, title, electionState FROM Election WHERE id = (?)', electionId);
+            if (!electionInfo) {
+                throw new NotFoundError(`Wahl mit Id ${electionId} konnte nicht gefunden werden.`);
+            }
+
             const results = await db.all('SELECT VotingResults.id, VotingResults.electionId, VotingResults.userId, VotingResults.isTestRun, ' + 
             ' VotingResults.dateCreatedUtc, VotingResults.success, VotingResults.errorLog, VotingResults.detailedLog, VotingResults.protocolFormatVersion, ' +
-            ' VotingResults.protocol, VotingResults.voterListCsv, VotingResults.votesCsv, VotingResults.statsData, election.title, ' +
+            ' VotingResults.protocol, VotingResults.voterListCsv, VotingResults.votesCsv, VotingResults.statsData, ' +
             ' User.username as username, User.fullName as fullName FROM VotingResults ' + 
-            ' INNER JOIN Election ON VotingResults.electionId = Election.id INNER JOIN User on User.id = VotingResults.userId WHERE electionId = (?)', electionId);
+            ' INNER JOIN User on User.id = VotingResults.userId WHERE electionId = (?)', electionId);
             const votingResults = results as Array<VotingResultsDao & { username: string, fullName: string, title: string }>;
-            const votingResultDtos : VotingResultsDto[] = votingResults.map(v => ({
+            const votingResultDtos : VotingResultDto[] = votingResults.map(v => ({
                 id: v.id,
                 electionId: v.electionId,
                 userId: v.userId,
                 isTestRun: v.isTestRun,
-                dateCreatedUtc: v.dateCreatedUtc,
+                dateCreatedUtc: toUtcDate(v.dateCreatedUtc),
                 success: v.success,
                 errorLog: v.errorLog,
                 detailedLog: v.detailedLog,
@@ -273,10 +279,14 @@ export class ElectionService {
                 voterListCsv: v.voterListCsv,
                 votesCsv: v.votesCsv,
                 statsData: v.statsData,
-                electionName: v.title,
                 username: v.username,
             }));
-            return votingResultDtos;
+
+            return {
+                electionTitle: electionInfo.title,
+                electionState: electionInfo.electionState,
+                results: votingResultDtos,
+            }
         }
         finally {
             db.close();
@@ -289,7 +299,7 @@ export class ElectionService {
             title: election.title,
             description: election.description,
             createUserId: election.createUserId,
-            dateCreated: election.dateCreated,
+            dateCreated: new Date(election.dateCreated),
             enforceGenderParity: election.enforceGenderParity,
             electionType: election.electionType,
             electionState: election.electionState,

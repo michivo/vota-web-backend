@@ -2,7 +2,7 @@ export interface BallotDao {
     id: number,
     countingUserId: number,
     additionalPeople: string | undefined | null,
-    dateCreatedUtc: Date,
+    dateCreatedUtc: string,
     electionId: number,
     ballotStation: string | undefined | null,
     ballotIdentifier: string | undefined | null,
@@ -11,7 +11,7 @@ export interface BallotDao {
     isDeleted: boolean,
     deleteUserId: number,
     deleteReason: string | undefined | null,
-    deleteDateUtc: Date,
+    deleteDateUtc: string,
 }
 
 // id               INTEGER PRIMARY KEY AUTOINCREMENT,

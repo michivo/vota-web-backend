@@ -6,6 +6,7 @@ import { BallotItemDto, BallotWithVotesDto } from '../../typings/dtos/ballotDto'
 import { ElectionState } from '../../typings/electionState';
 import { DeleteBallotRequest } from '../../typings/dtos/deleteBallotRequest';
 import { UserRole } from '../../typings/userRole';
+import { toUtcDate } from '../../helpers/dateHelper';
 
 export class BallotService {
     async getBallots(electionId: number, role: UserRole): Promise<BallotWithVotesDto[]> {
@@ -95,14 +96,14 @@ export class BallotService {
             additionalPeople: ballotDao.additionalPeople || '',
             ballotIdentifier: ballotDao.ballotIdentifier || '',
             ballotStation: ballotDao.ballotStation || '',
-            dateCreated: ballotDao.dateCreatedUtc,
+            dateCreated: toUtcDate(ballotDao.dateCreatedUtc),
             countingUserId: ballotDao.countingUserId,
             electionId: ballotDao.countingUserId,
             isValid: ballotDao.isValid,
             notes: ballotDao.notes || '',
             countingUserName: ballotDao.fullName || ballotDao.username,
             isDeleted: ballotDao.isDeleted,
-            dateDeleted: ballotDao.deleteDateUtc,
+            dateDeleted: ballotDao.deleteDateUtc ? toUtcDate(ballotDao.deleteDateUtc) : undefined,
             deleteReason: ballotDao.deleteReason,
             deleteUserId: ballotDao.deleteUserId,
             deleteUserName: ballotDao.isDeleted ? ballotDao.deleteUserFullName || ballotDao.deleteUsername : null,

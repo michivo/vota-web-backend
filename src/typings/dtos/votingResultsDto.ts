@@ -1,6 +1,13 @@
+import { ElectionState } from '../electionState';
 import { VotaProtocol } from '../votaResultData';
 
 export interface VotingResultsDto {
+    electionTitle: string,
+    electionState: ElectionState,
+    results: VotingResultDto[],
+}
+
+export interface VotingResultDto {
     id: number,
     electionId: number,
     userId: number,
@@ -14,6 +21,5 @@ export interface VotingResultsDto {
     voterListCsv: string,
     votesCsv: string,
     statsData: string,
-    electionName: string,
     username: string,
 }

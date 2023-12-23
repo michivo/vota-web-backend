@@ -3,7 +3,7 @@ export interface VotingResultsDao {
     electionId: number,
     userId: number,
     isTestRun: boolean,
-    dateCreatedUtc: Date,
+    dateCreatedUtc: string,
     success: boolean,
     errorLog: string,
     detailedLog: string,

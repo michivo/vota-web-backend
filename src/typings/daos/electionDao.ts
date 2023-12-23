@@ -7,7 +7,7 @@ export interface ElectionDao {
     title: string,
     description: string | undefined | null,
     createUserId: number,
-    dateCreated: Date,
+    dateCreated: number,
     enforceGenderParity: boolean,
     electionType: ElectionType,
     electionState: ElectionState,
