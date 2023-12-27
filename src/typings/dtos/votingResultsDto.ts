@@ -1,5 +1,6 @@
 import { ElectionState } from '../electionState';
 import { VotaProtocol } from '../votaResultData';
+import { VotingResultStatus } from '../votingResultStatus';
 
 export interface VotingResultsDto {
     electionTitle: string,
@@ -11,7 +12,7 @@ export interface VotingResultDto {
     id: number,
     electionId: number,
     userId: number,
-    isTestRun: boolean,
+    resultStatus: VotingResultStatus,
     dateCreatedUtc: Date,
     success: boolean,
     errorLog: string,
@@ -22,4 +23,7 @@ export interface VotingResultDto {
     votesCsv: string,
     statsData: string,
     username: string,
+    overrideReason: string | null | undefined,
+    overrideUser: string | undefined,
+    overrideDateUtc: Date,
 }

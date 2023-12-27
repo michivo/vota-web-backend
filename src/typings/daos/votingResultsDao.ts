@@ -1,8 +1,10 @@
+import { VotingResultStatus } from '../votingResultStatus';
+
 export interface VotingResultsDao {
     id: number,
     electionId: number,
     userId: number,
-    isTestRun: boolean,
+    resultStatus: VotingResultStatus,
     dateCreatedUtc: string,
     success: boolean,
     errorLog: string,
@@ -12,6 +14,7 @@ export interface VotingResultsDao {
     voterListCsv: string,
     votesCsv: string,
     statsData: string,
+    overrideReason: string | undefined | null,
 }
 
     /*    id             INTEGER PRIMARY KEY AUTOINCREMENT,
