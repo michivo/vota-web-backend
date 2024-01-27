@@ -33,7 +33,7 @@ export async function testVota(): Promise<string> {
     }
 }
 
-export async function countVotes(csvData: CsvData, election: ElectionDao): Promise<VotaResultData> {
+export async function countVotes(csvData: CsvData, invalidCount: number, election: ElectionDao): Promise<VotaResultData> {
     const votaOptions: VotaOptions = config.get('vota');
 
     const candidateFilename = `${randomUUID()}.csv`;
@@ -60,7 +60,7 @@ export async function countVotes(csvData: CsvData, election: ElectionDao): Promi
                 resolve({
                     success: false,
                     errorLog: err.message,
-                    detailedLog: `${stdout}\r\n --- Errors: ${stderr}`,
+                    detailedLog: `### Ungültige Stimmen: ${invalidCount}\r\n${stdout}\r\n --- Errors: ${stderr}`,
                     protocol: undefined,
                     stats: undefined,
                 });
@@ -69,7 +69,7 @@ export async function countVotes(csvData: CsvData, election: ElectionDao): Promi
                 resolve({
                     success: true,
                     errorLog: '',
-                    detailedLog: `${stdout}\r\n --- Errors: ${stderr}`,
+                    detailedLog: `### Ungültige Stimmen: ${invalidCount}\r\n${stdout}\r\n --- Errors: ${stderr}`,
                     protocol: undefined,
                     stats: undefined,
                 });

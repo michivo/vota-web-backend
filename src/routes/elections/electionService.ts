@@ -241,7 +241,10 @@ export class ElectionService {
 
             const csvData = getCsvData(candidateDaos, ballots, election.enforceGenderParity);
 
-            const votingResult = await countVotes(csvData, election);
+            const invalidCountQuery = await db.get('SELECT COUNT(*) AS invalidCount FROM Ballot WHERE Ballot.isValid = 0 AND Ballot.isDeleted = 0 AND Ballot.electionId = (?)', electionId);
+            console.error(invalidCountQuery.invalidCount);
+
+            const votingResult = await countVotes(csvData, invalidCountQuery.invalidCount, election);
 
             const dbSaveResult = await db.run('INSERT INTO VotingResults (electionId, userId, resultStatus, success, errorLog, detailedLog, protocol, ' +
                 'protocolFormatVersion, voterListCsv, votesCsv, statsData) VALUES ' +
