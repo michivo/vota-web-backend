@@ -231,7 +231,7 @@ export class ElectionService {
                     });
 
                 await db.run('UPDATE Election SET ' +
-                    'electionState = $electionState, WHERE ' +
+                    'electionState = $electionState WHERE ' +
                     'Election.id = $electionId', {
                     $electionState: ElectionState.ResultsOfficial,
                     $electionId: electionId,
