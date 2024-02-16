@@ -118,7 +118,8 @@ async function checkCanDelete(db: Database, electionId: number, role: UserRole) 
     if (!result) {
         throw new BadRequestError(`Wahl mit ID ${electionId} existiert nicht.`);
     }
-    return result.electionState === ElectionState.Counting || (result.electionState === ElectionState.CountingComplete && role === UserRole.Admin);
+    return result.electionState === ElectionState.Counting || 
+        ((result.electionState === ElectionState.CountingComplete || result.electionState === ElectionState.ResultsOfficial) && role === UserRole.Admin);
 }
 
 async function checkIsBallotValid(ballot: BallotWithVotesDto, db: Database, role: UserRole) {

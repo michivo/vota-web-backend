@@ -216,18 +216,25 @@ export class ElectionService {
             if (!result) {
                 throw new NotFoundError(`Wahl mit Id ${electionId} konnte nicht gefunden werden.`);
             }
-            if(!request.isTestRun) {
+            if (!request.isTestRun) {
                 const existingResultQuery = await db.get('SELECT id FROM VotingResults WHERE electionId = (?) AND resultStatus = 0 AND success = 1');
-                if(existingResultQuery && !request.overrideReason) {
+                if (existingResultQuery && !request.overrideReason) {
                     throw new BadRequestError('Wenn ein Wahlergebnis übeschrieben werden soll, muss ein Grund angegeben werden.');
                 }
 
-                await db.run('UPDATE VotingResults SET resultStatus = 2, overrideUserId = $userId, overrideDateUtc = $overrideDate, overrideReason = $overrideReason WHERE electionId = $electionId AND resultStatus = 0 AND success = 1', 
-                {
-                    $userId: userId,
-                    $overrideDate: new Date(),
+                await db.run('UPDATE VotingResults SET resultStatus = 2, overrideUserId = $userId, overrideDateUtc = $overrideDate, overrideReason = $overrideReason WHERE electionId = $electionId AND resultStatus = 0 AND success = 1',
+                    {
+                        $userId: userId,
+                        $overrideDate: new Date(),
+                        $electionId: electionId,
+                        $overrideReason: request.overrideReason,
+                    });
+
+                await db.run('UPDATE Election SET ' +
+                    'electionState = $electionState, WHERE ' +
+                    'Election.id = $electionId', {
+                    $electionState: ElectionState.ResultsOfficial,
                     $electionId: electionId,
-                    $overrideReason: request.overrideReason,
                 });
             }
 
@@ -263,7 +270,7 @@ export class ElectionService {
             });
             return dbSaveResult.lastID;
         }
-        catch(err: unknown) {
+        catch (err: unknown) {
             console.error(err);
         }
         finally {
@@ -279,14 +286,14 @@ export class ElectionService {
                 throw new NotFoundError(`Wahl mit Id ${electionId} konnte nicht gefunden werden.`);
             }
 
-            const results = await db.all('SELECT VotingResults.id, VotingResults.electionId, VotingResults.userId, VotingResults.resultStatus, ' + 
-            ' VotingResults.dateCreatedUtc, VotingResults.success, VotingResults.errorLog, VotingResults.detailedLog, VotingResults.protocolFormatVersion, ' +
-            ' VotingResults.protocol, VotingResults.voterListCsv, VotingResults.votesCsv, VotingResults.statsData, VotingResults.overrideReason, VotingResults.overrideDateUtc, ' +
-            ' User.username as username, User.fullName as fullName, overrideUser.username as overrideUsername, overrideUser.fullName as overrideUserFullName FROM VotingResults ' + 
-            ' INNER JOIN User on User.id = VotingResults.userId LEFT JOIN User overrideUser ON overrideUser.id = VotingResults.overrideUserId WHERE electionId = (?)', electionId);
+            const results = await db.all('SELECT VotingResults.id, VotingResults.electionId, VotingResults.userId, VotingResults.resultStatus, ' +
+                ' VotingResults.dateCreatedUtc, VotingResults.success, VotingResults.errorLog, VotingResults.detailedLog, VotingResults.protocolFormatVersion, ' +
+                ' VotingResults.protocol, VotingResults.voterListCsv, VotingResults.votesCsv, VotingResults.statsData, VotingResults.overrideReason, VotingResults.overrideDateUtc, ' +
+                ' User.username as username, User.fullName as fullName, overrideUser.username as overrideUsername, overrideUser.fullName as overrideUserFullName FROM VotingResults ' +
+                ' INNER JOIN User on User.id = VotingResults.userId LEFT JOIN User overrideUser ON overrideUser.id = VotingResults.overrideUserId WHERE electionId = (?)', electionId);
             const votingResults = results as Array<VotingResultsDao & { username: string, fullName: string, title: string, overrideUsername: string, overrideUserFullName: string, overrideDateUtc: number }>;
-            console.log(votingResults.map(v => v.overrideDateUtc));            
-            const votingResultDtos : VotingResultDto[] = votingResults.map(v => ({
+            console.log(votingResults.map(v => v.overrideDateUtc));
+            const votingResultDtos: VotingResultDto[] = votingResults.map(v => ({
                 id: v.id,
                 electionId: v.electionId,
                 userId: v.userId,
@@ -305,7 +312,7 @@ export class ElectionService {
                 overrideUser: v.overrideUserFullName || v.overrideUsername,
                 overrideDateUtc: new Date(v.overrideDateUtc),
             }));
-            console.log(votingResultDtos.map(v => v.overrideDateUtc));            
+            console.log(votingResultDtos.map(v => v.overrideDateUtc));
 
             return {
                 electionTitle: electionInfo.title,

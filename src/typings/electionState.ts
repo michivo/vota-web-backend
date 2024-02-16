@@ -4,4 +4,5 @@ export enum ElectionState {
     Counting = 2,
     CountingComplete = 3,
     Done = 4,
+    ResultsOfficial = 5,
 }
