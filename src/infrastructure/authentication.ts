@@ -63,6 +63,7 @@ class AuthenticationService {
             name: user.fullName ?? user.username,
             uid: user.id,
             regionIds: user.regions.map(r => r.id),
+            email: user.email,
         }, this._privateKey,
             { algorithm: 'RS256', expiresIn: '24h', keyid: this._authSettings.keyId });
         return token;
