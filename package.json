@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "clean": "rimraf dist/*",
-    "start": "cross-env NODE_ENV=test node dist/src/main.js",
+    "start": "cross-env NODE_ENV=production node dist/src/main.js",
+    "test": "cross-env NODE_ENV=test node dist/src/main.js",
     "dev": "cross-env NODE_ENV=development nodemon ./src/main.ts",
     "lint": "eslint . --ext .ts",
     "tsc": "tsc",
