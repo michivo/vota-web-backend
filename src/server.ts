@@ -65,7 +65,8 @@ export const generateExpress = (
                 case InternalError:
                     return res.status(500).json({ message: error.message });
                 default:
-                    throw error;
+                    console.error('Unknown error');
+                    return res.status(500).json({ message: 'Unknown error' });
             }
         }
     );
@@ -99,7 +100,7 @@ class Server {
             await migrateDb();
             this._logger.info('Migration complete');
         }
-        catch (err: unknown) { 
+        catch (err: unknown) {
             console.error(`Error migrating database: ${err}`);
         }
 
