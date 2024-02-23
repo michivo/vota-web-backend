@@ -30,7 +30,7 @@ COPY --from=build-env --chown=runuser /app/Vota.CLI/publish .
 # ENTRYPOINT ["dotnet", "Vota.dll"]
 
 WORKDIR /webapp
-COPY package*.json /webapp
+COPY package*.json /webapp/
 RUN npm install
 
 ENV NODE_ENV=test
