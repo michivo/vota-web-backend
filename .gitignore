@@ -134,4 +134,4 @@ keys/*
 config/*
 config/development.json
 
-!config/dist.json
+!config/example.json

@@ -1,0 +1,23 @@
+{
+    "server": {
+        "port": 10081
+    },
+    "database": {
+        "path": "/data/TODO.db"
+    },
+    "auth": {
+        "privateKeyFile": "keys/TODO.key",
+        "publicKeyFile": "keys/TODO.key.pub",
+        "keyId": "TODO"
+    },
+    "sendgrid": {
+        "apiKey": "TODO",
+        "senderAddress": "michael@daredevels.com",
+        "replyToAddress": "noreply@daredevels.com",
+        "frontendUrl": "https://vota.gruene.at"
+    },
+    "vota": {
+        "cliPath": "/app/Vota.CLI.dll",
+        "tempFolder": "/tmp"
+    }
+}
