@@ -133,3 +133,5 @@ database/test.db
 keys/*
 config/*
 config/development.json
+
+!config/dist.json
