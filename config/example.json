@@ -10,11 +10,17 @@
         "publicKeyFile": "keys/TODO.key.pub",
         "keyId": "TODO"
     },
-    "sendgrid": {
+    "email": {
         "apiKey": "TODO",
         "senderAddress": "michael@daredevels.com",
         "replyToAddress": "noreply@daredevels.com",
-        "frontendUrl": "https://vota.gruene.at"
+        "frontendUrl": "https://vota.gruene.at",
+        "mode": "SMTP | SendGrid",
+        "smtpHost": "TODO",
+        "smtpPort": 587,
+        "smtpUser": "TODO",
+        "smtpPass": "TODO",
+        "smtpSecure": false
     },
     "vota": {
         "cliPath": "/app/Vota.CLI.dll",

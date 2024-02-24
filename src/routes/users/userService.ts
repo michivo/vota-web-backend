@@ -44,7 +44,7 @@ class UserService {
     createUser = async (user: CreateUserRequest): Promise<number | undefined> => {
         const db = await openDb();
         try {
-            const existingUser = await db.get('SELECT id FROM User WHERE username = (?)', user.username);
+            const existingUser = await db.get('SELECT id FROM User WHERE username = (?) AND isActive = 1', user.username);
 
             if (existingUser) {
                 throw new BadRequestError('Ein*e Benutzer*in mit diesem Namen existiert bereits.');
