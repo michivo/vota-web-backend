@@ -132,6 +132,6 @@ database/dev.db
 database/test.db
 keys/*
 config/*
-config/development.json
+config/*.json
 
 !config/example.json
