@@ -15,7 +15,7 @@ router.post('/', roleBasedAuthorization(UserRole.Admin),
     oneOf([
         [
             body('sendPasswordLink').isBoolean().equals('false'),
-            body('password').isStrongPassword({ minLength: 8 }),
+            body('password').notEmpty().isLength({ min: 8 }),
             body('email').isEmail().optional({ values: 'falsy' }),
         ],
         [
@@ -86,7 +86,7 @@ router.put('/:userId', roleBasedAuthorization(UserRole.Admin),
     });
 
 router.post('/:userId/password', authorizationHandler,
-    param('userId').isNumeric(), body('password').isStrongPassword({ minLength: 8 }),
+    param('userId').isNumeric(), body('password').notEmpty().isLength({ min: 8 }),
     async (req: express.Request, res: express.Response, error: NextFunction) => {
         try {
             const errors = validationResult(req);
@@ -105,8 +105,24 @@ router.post('/:userId/password', authorizationHandler,
         }
     });
 
+router.post('/resetRequests', body('username').notEmpty().isLength({ min: 3, max: 50 }),
+async (req: express.Request, res: express.Response, error: NextFunction) => {
+    try {
+        console.error(req.body);
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            throw new BadRequestError(JSON.stringify(errors));
+        }
+        await userService.resetPassword(req.body.username);
+        res.send({ success: true });
+    }
+    catch (err) {
+        error(err);
+    }
+});
+
 router.post('/challengeResponses',
-    body('password').isStrongPassword({ minLength: 8 }), body('challenge').isUUID(),
+    body('password').notEmpty().isLength({ min: 8 }), body('challenge').isUUID(),
     async (req: express.Request, res: express.Response, error: NextFunction) => {
         try {
             const errors = validationResult(req);

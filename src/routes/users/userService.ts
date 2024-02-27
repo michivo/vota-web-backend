@@ -5,12 +5,11 @@ import { BadRequestError, NotFoundError } from '../../infrastructure/errors';
 import { UserDao } from '../../typings/daos/userDao';
 import { SignInRequest } from '../../typings/dtos/signInRequest';
 import { CreateUserRequest, UserDto } from '../../typings/dtos/userDto';
-import { sendResetMail } from '../../infrastructure/mail';
+import { sendNewUserMail, sendResetMail } from '../../infrastructure/mail';
 import { Database } from 'sqlite';
 import { RegionDto } from '../../typings/dtos/regionDto';
 
 class UserService {
-
     checkCredentials = async (signInRequest: SignInRequest): Promise<UserDto> => {
         const db = await openDb();
         try {
@@ -82,7 +81,7 @@ class UserService {
                         $userId: result.lastID,
                         $dateCreated: new Date(),
                     });
-                await sendResetMail(challenge, user.email);
+                await sendNewUserMail(challenge, user.email);
             }
             return result.lastID;
         }
@@ -204,7 +203,33 @@ class UserService {
         finally {
             db.close();
         }
-    }    
+    }
+
+    public async resetPassword(username: string) {
+        const db = await openDb();
+        try {
+            const existingUser = await db.get('SELECT id, email FROM User WHERE username = (?)', username);
+
+            if (!existingUser) {
+                throw new BadRequestError('Diese*r Benutzer*in existiert nicht.');
+            }
+            if (!existingUser.email) {
+                throw new BadRequestError('Für diese*n Benutzer*in wurde keine E-Mail-Adresse hinterlegt.');
+            }
+
+            const challenge = crypto.randomUUID();
+            await db.run('INSERT INTO PasswordReset (challenge, userId, dateCreated) VALUES ' + 
+                '($challenge, $userId, $dateCreated)', {
+                    $challenge: challenge,
+                    $userId: existingUser.id,
+                    $dateCreated: new Date(),
+                });
+            await sendResetMail(challenge, existingUser.email);
+        }
+        finally {
+            db.close();
+        } 
+    }
 
     private mapToUserDto(dao: UserDao, region: RegionDto): UserDto {
         return {

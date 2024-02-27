@@ -1,0 +1,14 @@
+services:
+  vota-backend:
+    ports: 
+      - 31401:31401
+    environment:
+      - NODE_CONFIG_DIR=/vota_config
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    # these are just sample values for the volumes      
+    volumes:
+      - ./config:/vota_config
+      - ./database:/data
+      - ./keys:/keys
