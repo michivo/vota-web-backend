@@ -81,7 +81,7 @@ class UserService {
                         $userId: result.lastID,
                         $dateCreated: new Date(),
                     });
-                await sendNewUserMail(challenge, user.email);
+                await sendNewUserMail(challenge, user.email, user.username);
             }
             return result.lastID;
         }

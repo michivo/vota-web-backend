@@ -50,12 +50,12 @@ export async function sendMail(subject: string, toEmail: string, content: string
     }
 }
 
-export async function sendNewUserMail(challenge: string, toAddress: string) {
+export async function sendNewUserMail(challenge: string, toAddress: string, username: string) {
     const subject = 'Ihr Vota-Konto';
     const mailOptions: MailOptions = config.get('email');
     const link = `${mailOptions.frontendUrl}/reset-password?challenge=${challenge}`;
-    const content = `Für Sie wurde ein neues Benutzer*innenkonto bei Vota, dem Wahltool der Grünen, angelegt. Bitte öffnen Sie folgenden Link, um ein Passwort für Ihr Konto festzulegen: ${link}`;
-    const contentHtml = '<html><head><title>Vota</title></head><body><p>Für Sie wurde ein neues Benutzer*innenkonto bei Vota, dem Wahltool der Grünen, angelegt. Bitte öffnen Sie folgenden Link, um ein Passwort für Ihr Konto festzulegen: <br>' + 
+    const content = `Für Sie wurde ein neues Benutzer*innenkonto mit Benutzer*innenname ${username} bei Vota, dem Wahltool der Grünen, angelegt. Bitte öffnen Sie folgenden Link, um ein Passwort für Ihr Konto festzulegen: ${link}`;
+    const contentHtml = `<html><head><title>Vota</title></head><body><p>Für Sie wurde ein neues Benutzer*innenkonto mit Benutzer*innenname <b>${username}</b> bei Vota, dem Wahltool der Grünen, angelegt. Bitte öffnen Sie folgenden Link, um ein Passwort für Ihr Konto festzulegen: <br>` + 
         `<a href="${link}">${link}</a></p></html>`;
     await sendMail(subject, toAddress, content, contentHtml);
 }
