@@ -98,7 +98,7 @@ export class BallotService {
             ballotStation: ballotDao.ballotStation || '',
             dateCreated: toUtcDate(ballotDao.dateCreatedUtc),
             countingUserId: ballotDao.countingUserId,
-            electionId: ballotDao.countingUserId,
+            electionId: ballotDao.electionId,
             isValid: ballotDao.isValid,
             notes: ballotDao.notes || '',
             countingUserName: ballotDao.fullName || ballotDao.username,
