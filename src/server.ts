@@ -28,7 +28,14 @@ export const generateExpress = (
     server.use(express.static(path.join(__dirname, '..', 'build', 'public')));
 
     server.use(json()); // parse application/json
-    server.use(cors());
+    if (process.env.NODE_ENV === 'development') {
+        server.use(cors());
+    }
+    else {
+        server.use(cors({
+            origin: ['https://vota.gruene.at', 'https://vota.faschinger.com'],
+        }));
+    }
 
     // router links
     server.use('/', router);
@@ -74,7 +81,7 @@ export const generateExpress = (
 };
 
 class Server {
-    private _express: express.Express;
+    public app: express.Express;
     private _logger: Logger;
     private _running: boolean;
     private _options: ServerOptions;
@@ -89,9 +96,9 @@ class Server {
         this._logger = logger;
         this._running = false;
         this._options = serverOptions;
-        this._express = generateExpress(logger, router);
+        this.app = generateExpress(logger, router);
 
-        this._server = http.createServer(this._express);
+        this._server = http.createServer(this.app);
     }
 
     public async start() {
