@@ -6,6 +6,10 @@ import ConsoleLogger from '../../infrastructure/consoleLogger';
 import Server from '../../server';
 import { UserRole } from '../../typings/userRole';
 import healthRouter from './healthRouter';
+import { Database } from 'sqlite';
+
+const actualDatabase = jest.requireActual('../../infrastructure/database');
+let database: Database;
 
 jest.mock('../../infrastructure/authentication', () => {
     return {
@@ -16,10 +20,9 @@ jest.mock('../../infrastructure/authentication', () => {
 });
 
 jest.mock('../../infrastructure/database', () => {
-    const actualModule = jest.requireActual('../../infrastructure/database');
     return {
-        openDb: async () => { const db = await actualModule.openDb(); await db.migrate(); return db; },
-        migrateDb: actualModule.migrateDb,
+        openDb: async () => { return database; },
+        migrateDb: async () => {},
     }
 });
 
@@ -28,6 +31,8 @@ describe('Health Router', () => {
     let server: Server;
 
     beforeEach(async () => {
+        database = await actualDatabase.openDb();
+        await database.migrate();
         const serverOptions: ServerOptions = config.get('server');
         const logger = new ConsoleLogger();
         server = new Server(logger, healthRouter, serverOptions);

@@ -97,7 +97,7 @@ export class ElectionService {
     }
 
     updateElection = async (election: ElectionWithCandidatesDto): Promise<void> => {
-        const db = await openDb(); // TODO transaction handling?
+        const db = await openDb();
         try {
             await db.run('UPDATE Election SET ' +
                 'title = $title, ' +
