@@ -37,6 +37,14 @@ export const generateExpress = (
         }));
     }
 
+    server.use((req, res, next) => {
+        if (req.secure) {
+            res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+            res.setHeader('Content-Security-Policy', 'default-src \'self\'');
+        }
+        next();
+    });
+
     // router links
     server.use('/', router);
 
